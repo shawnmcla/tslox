@@ -2,14 +2,15 @@ import { Token, TokenType } from "./Ast";
 import { RuntimeError } from "./Errors";
 import { Interpreter } from "./Interpreter";
 import { Parser } from "./Parser";
+import { Resolver } from "./Resolver";
 import { Scanner } from "./Scanner";
 
 const domConsole = document.querySelector(".console");
 const domOutput = domConsole?.querySelector(".output");
-const domInput = domConsole?.querySelector("input");
+const domInput = domConsole?.querySelector("#input");
 
 domInput?.addEventListener("keydown", (e) => {
-    if(e.key == "Enter") {
+    if(e.key == "Enter" && !e.shiftKey) {
         e.preventDefault();
         const input = (e.target as HTMLInputElement).value ?? "";
         Lox.runRepl(input);
@@ -88,8 +89,13 @@ export class Lox {
         const scanner = new Scanner(source);
         const tokens = scanner.scanTokens();
         const parser = new Parser(tokens);
+
         const statements = parser.parse();
         if(this.hadError || !statements) return;
+
+        const resolver = new Resolver(this.interpreter);
+        resolver.resolveStatements(statements);
+        if(this.hadError) return;
 
         this.interpreter.interpret(statements, isRepl);
     }

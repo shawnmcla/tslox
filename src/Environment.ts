@@ -12,11 +12,25 @@ export class Environment {
     }
 
     get(name: Token): Lobj {
+        console.log("GET", name);
         if(this.values.has(name.lexeme)) return this.values.get(name.lexeme);
 
         if (this.enclosing != null) return this.enclosing.get(name);
 
         throw new RuntimeError(name, `Undefined variable '${name.lexeme}'`);
+    }
+
+    getAt(distance: number, name: string): any {
+        return this.ancestor(distance).values.get(name);
+    }
+
+    ancestor(distance: number): Environment {
+        let env: Environment = this;
+        for(let i = 0; i < distance; i++) {
+            // Resolver pass ensures this is not null
+            env = env.enclosing!;
+        }
+        return env;
     }
 
     assign(name: any, value: any): void {
@@ -32,5 +46,9 @@ export class Environment {
         }
         
         throw new RuntimeError(name, `Undefined variable '${name.lexeme}.'`)
+    }
+
+    assignAt(distance: number, name: Token, value: Lobj): void {
+        this.ancestor(distance).values.set(name.lexeme, value);
     }
 }

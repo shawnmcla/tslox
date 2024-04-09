@@ -49,14 +49,17 @@
       color: rgba(255,255,100);
     }
 
-    .console input {
+    .console textarea {
       font-family: 'Courier New', Courier, monospace;
       background: transparent;
       color: #CCC;
       border: none;
       outline: none;
+      padding: 1em;
       font-size: 14px;
       margin-top: 0.2em;
+      height: 40vh;
+      background: #333;
     }
   </style>
 </head>
@@ -64,7 +67,7 @@
 <body>
   <div class="console">
     <div class="output"></div>
-    <input type="text">
+    <textarea id="input"></textarea>
   </div>
 
 

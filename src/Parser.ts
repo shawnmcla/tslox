@@ -5,7 +5,6 @@ import { Lox } from "./Lox";
 export class Parser {
     private tokens: Token[] = [];
     private cur = 0;
-    private loopDepth = 0;
 
     constructor(tokens: Token[]) {
         this.tokens = tokens;
@@ -64,8 +63,6 @@ export class Parser {
     }
 
     synchronize(): void {
-        if (this.loopDepth > 0) console.warn("Synchronize with loopDepth non-zero.. maybe have buggy!!!");
-
         this.advance();
 
         while (!this.isAtEnd) {
@@ -183,18 +180,14 @@ export class Parser {
     }
 
     whileStatement(): Stmt {
-        this.loopDepth++;
         this.consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.");
         const condition = this.expression();
         this.consume(TokenType.RIGHT_PAREN, "Expect ')' after while condition.");
         const body = this.statement();
-        this.loopDepth--;
         return new WhileStmt(condition, body);
     }
 
     forStatement(): Stmt {
-        this.loopDepth++;
-
         this.consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.");
 
         let initializer: Stmt | undefined;
@@ -242,7 +235,6 @@ export class Parser {
             ]
         );
 
-        this.loopDepth--;
         return body;
     }
 
@@ -267,17 +259,11 @@ export class Parser {
     }
 
     breakStatement(): Stmt {
-        if (this.loopDepth <= 0) {
-            this.error(this.previous(), "Break statement can only be used inside a loop.");
-        }
         this.consume(TokenType.SEMICOLON, "Expect ';' after break.");
         return new BreakStmt(this.previous());
     }
 
     continueStatement(): Stmt {
-        if (this.loopDepth <= 0) {
-            this.error(this.previous(), "Continue statement can only be used inside a loop.");
-        }
         this.consume(TokenType.SEMICOLON, "Expect ';' after continue.");
         return new ContinueStmt(this.previous());
     }

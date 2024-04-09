@@ -11,6 +11,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     private replMode = false;
     public globals = new Environment();
     private environment = this.globals;
+    private readonly locals: Map<Expr, number> = new Map();
 
     constructor() {
         this.globals.define("clock", {
@@ -21,6 +22,10 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
             },
             toString() { return "<native fn>"; }
         });
+    }
+
+    resolve(expr: Expr, depth: number): void {
+        this.locals.set(expr, depth);
     }
 
     interpret(statements: Stmt[], isRepl: boolean = false): void {
@@ -133,16 +138,32 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     }
 
     visitVariableExpr(variable: VariableExpr) {
-        const value = this.environment.get(variable.name);
-        if (value === undefined) {
-            throw new RuntimeError(variable.name, "Cannot access variable before initialization.");
+        return this.lookUpVariable(variable.name, variable);
+        // const value = this.environment.get(variable.name);
+        // if (value === undefined) {
+        //     throw new RuntimeError(variable.name, "Cannot access variable before initialization.");
+        // }
+        // return value;
+    }
+
+    lookUpVariable(name: Token, expr: Expr): Lobj {
+        const distance = this.locals.get(expr);
+        if (distance !== undefined) {
+            return this.environment.getAt(distance, name.lexeme);
+        } else {
+            return this.globals.get(name);
         }
-        return value;
     }
 
     visitAssignmentExpr(assignment: AssignmentExpr) {
         const value = this.evaluate(assignment.value);
-        this.environment.assign(assignment.name, value);
+        const distance = this.locals.get(assignment);
+        if (distance) {
+            this.environment.assignAt(distance, assignment.name, value);
+        } else {
+            this.globals.assign(assignment.name, value);
+        }
+        //this.environment.assign(assignment.name, value);
         return value;
     }
 
