@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vite + TS</title>
+
+  <style>
+    :root {
+      font-size: 14px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .console {
+      background: #222;
+      width: 100vw;
+      height: 100vh;
+      padding: 1em;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .console pre {
+      color: #CCC;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      margin-top: 0.2em;
+    }
+
+    .console pre.error {
+      color: rgba(255, 100, 100);
+    }
+
+    .console pre.warn {
+      color: rgba(255,255,100);
+    }
+
+    .console input {
+      font-family: 'Courier New', Courier, monospace;
+      background: transparent;
+      color: #CCC;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      margin-top: 0.2em;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="console">
+    <div class="output"></div>
+    <input type="text">
+  </div>
+
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
