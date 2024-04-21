@@ -86,6 +86,28 @@ export class CallExpr extends Expr {
     }
     constructor(public callee: Expr, public paren: Token, public args: Expr[]) { super(); }
 }
+
+export class GetExpr extends Expr {
+    accept<T>(visitor: ExprVisitor<T>): T {
+        return visitor.visitGetExpr(this);
+    }
+    constructor(public object: Expr, public name: Token) { super(); }
+}
+
+export class SetExpr extends Expr {
+    accept<T>(visitor: ExprVisitor<T>): T {
+        return visitor.visitSetExpr(this);
+    }
+    constructor(public object: Expr, public name: Token, public value: Expr) { super(); }
+}
+
+export class ThisExpr extends Expr {
+    accept<T>(visitor: ExprVisitor<T>): T {
+        return visitor.visitThisExpr(this);
+    }
+    constructor(public keyword: Token) { super(); }
+}
+
 export abstract class Stmt {
     abstract accept<T>(visitor: StmtVisitor<T>): T;
 }
@@ -160,6 +182,13 @@ export class ReturnStmt extends Stmt {
     constructor(public keyword: Token, public value?: Expr) { super(); }
 }
 
+export class ClassStmt extends Stmt {
+    accept<T>(visitor: StmtVisitor<T>): T {
+        return visitor.visitClassStmt(this);
+    }
+    constructor(public name: Token, public methods: FunctionStmt[]) { super(); }
+}
+
 export interface ExprVisitor<T> {
     visitBinaryExpr(binary: BinaryExpr): T;
     visitGroupingExpr(grouping: GroupingExpr): T;
@@ -169,6 +198,9 @@ export interface ExprVisitor<T> {
     visitAssignmentExpr(assignment: AssignmentExpr): T;
     visitLogicalExpr(logical: LogicalExpr): T;
     visitCallExpr(call: CallExpr): T;
+    visitGetExpr(get: GetExpr): T;
+    visitSetExpr(set: SetExpr): T;
+    visitThisExpr(thisValue: ThisExpr): T;
 }
 
 export interface StmtVisitor<T> {
@@ -182,4 +214,5 @@ export interface StmtVisitor<T> {
     visitBreakStmt(stmt: BreakStmt): T;
     visitContinueStmt(stmt: ContinueStmt): T;
     visitReturnStmt(stmt: ReturnStmt): T;
+    visitClassStmt(stmt: ClassStmt): T;
 }

@@ -1,9 +1,11 @@
-import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, Token, TokenType, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt } from "./Ast";
+import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, Token, TokenType, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt, ClassStmt, GetExpr, SetExpr, ThisExpr } from "./Ast";
 import { Environment } from "./Environment";
 import { Break, Continue, Return, RuntimeError } from "./Errors";
 import { Lox } from "./Lox";
 import { LoxCallable } from "./LoxCallable";
+import { LoxClass } from "./LoxClass";
 import { LoxFunction } from "./LoxFunction";
+import { LoxInstance } from "./LoxInstance";
 
 export type Lobj = any
 
@@ -199,6 +201,29 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         return func.call(this, args);
     }
 
+    visitGetExpr(get: GetExpr): Lobj {
+        const object = this.evaluate(get.object);
+        if (object instanceof LoxInstance) {
+            return object.get(get.name);
+        }
+        throw new RuntimeError(get.name, "Only instances have properties.");
+    }
+
+    visitSetExpr(set: SetExpr): Lobj {
+        const object = this.evaluate(set.object);
+        if(!(object instanceof LoxInstance)) {
+            throw new RuntimeError(set.name, "Only instances have fields.");
+        }
+
+        const value = this.evaluate(set.value);
+        object.set(set.name, value);
+        return value;
+    }
+
+    visitThisExpr(thisValue: ThisExpr) {
+        return this.lookUpVariable(thisValue.keyword, thisValue);    
+    }
+
     visitExpressionStmt(stmt: ExpressionStmt): void {
         const result = this.evaluate(stmt.expression);
         if (this.replMode && !(stmt.expression instanceof AssignmentExpr)) {
@@ -243,7 +268,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     }
 
     visitFunctionStmt(stmt: FunctionStmt): void {
-        const func = new LoxFunction(stmt, this.environment);
+        const func = new LoxFunction(stmt, this.environment, false);
         this.environment.define(stmt.name.lexeme, func);
     }
 
@@ -259,6 +284,21 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         let value: Lobj = null;
         if (stmt.value) value = this.evaluate(stmt.value);
         throw new Return(value);
+    }
+
+    visitClassStmt(stmt: ClassStmt): void {
+        this.environment.define(stmt.name.lexeme, null);
+
+        const methods: Map<string, LoxFunction> = new Map();
+        const statics: Map<Token, Lobj> = new Map();
+
+        for(const method of stmt.methods) {
+            const func = new LoxFunction(method, this.environment, method.name.lexeme === "init");
+            methods.set(method.name.lexeme, func);
+        }
+
+        const klass = new LoxClass(stmt.name.lexeme, methods);
+        this.environment.assign(stmt.name, klass);
     }
 
     executeBlock(statements: Stmt[], environment: Environment): void {

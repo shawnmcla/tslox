@@ -1,4 +1,4 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ContinueStmt, Expr, ExpressionStmt, FunctionStmt, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, Stmt, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { ParseError } from "./Errors";
 import { Lox } from "./Lox";
 
@@ -101,6 +101,8 @@ export class Parser {
                 const name = expr.name;
                 console.debug("ASSIGNMENT", name, value);
                 return new AssignmentExpr(name, value);
+            } else if (expr instanceof GetExpr) {
+                return new SetExpr(expr.object, expr.name, value);
             }
 
             this.error(equals, "Invalid assignment target.");
@@ -111,6 +113,7 @@ export class Parser {
 
     declaration(): Stmt | undefined {
         try {
+            if (this.match(TokenType.CLASS)) return this.classDeclaration();
             if (this.match(TokenType.FUN)) return this.function("function");
             if (this.match(TokenType.VAR)) return this.varDeclaration();
             return this.statement();
@@ -258,6 +261,19 @@ export class Parser {
         return new FunctionStmt(name, parameters, body);
     }
 
+    classDeclaration(): Stmt {
+        const name = this.consume(TokenType.IDENTIFIER, "Expect class name.");
+        this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+        const methods: FunctionStmt[] = [];
+        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd) {
+            methods.push(this.function("method"));
+        }
+
+        this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+        return new ClassStmt(name, methods);
+    }
+
     breakStatement(): Stmt {
         this.consume(TokenType.SEMICOLON, "Expect ';' after break.");
         return new BreakStmt(this.previous());
@@ -375,6 +391,10 @@ export class Parser {
             return new LiteralExpr(this.previous().literal);
         }
 
+        if(this.match(TokenType.THIS)) {
+            return new ThisExpr(this.previous());
+        }
+        
         if (this.match(TokenType.IDENTIFIER)) {
             return new VariableExpr(this.previous());
         }
@@ -410,7 +430,11 @@ export class Parser {
         while (true) {
             if (this.match(TokenType.LEFT_PAREN)) {
                 expr = this.finishCall(expr);
-            } else {
+            } else if (this.match(TokenType.DOT)) {
+                const name = this.consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
+                expr = new GetExpr(expr, name);
+            }
+            else {
                 break;
             }
         }

@@ -1,15 +1,24 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionStmt, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, Stmt, StmtVisitor, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { Interpreter } from "./Interpreter";
 import { Lox } from "./Lox";
 
 enum FunctionType {
     NONE,
-    FUNCTION
+    FUNCTION,
+    INITIALIZER,
+    METHOD
+}
+
+enum ClassType {
+    NONE,
+    CLASS
 }
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     private readonly scopes: Map<string, boolean>[] = [];
     private currentFunction = FunctionType.NONE;
+    private currentClass = ClassType.NONE;
+
     private loopDepth = 0;
 
     public peekScope(): Map<string, boolean> {
@@ -136,7 +145,30 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
             Lox.error(stmt.keyword, "Can't return from top-level code.");
         }
 
-        if (stmt.value) this.resolveExpression(stmt.value);
+        if (stmt.value) {
+            if (this.currentFunction === FunctionType.INITIALIZER) {
+                Lox.error(stmt.keyword, "Cannot return a value from an initializer.");
+            }
+            this.resolveExpression(stmt.value);
+        }
+    }
+
+    visitClassStmt(stmt: ClassStmt): void {
+        const enclosingClass = this.currentClass;
+        this.currentClass = ClassType.CLASS;
+        this.declare(stmt.name);
+
+        this.beginScope();
+        this.peekScope().set("this", true);
+
+        for (const method of stmt.methods) {
+            const declaration = method.name.lexeme === "init" ? FunctionType.INITIALIZER : FunctionType.METHOD;
+            this.resolveFunction(method, declaration);
+        }
+
+        this.define(stmt.name);
+        this.endScope();
+        this.currentClass = enclosingClass;
     }
 
     visitBinaryExpr(binary: BinaryExpr): void {
@@ -180,5 +212,21 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         for (const arg of call.args) {
             this.resolveExpression(arg);
         }
+    }
+
+    visitGetExpr(get: GetExpr): void {
+        this.resolveExpression(get.object);
+    }
+
+    visitSetExpr(set: SetExpr): void {
+        this.resolveExpression(set.value);
+        this.resolveExpression(set.object);
+    }
+
+    visitThisExpr(thisValue: ThisExpr): void {
+        if (this.currentClass === ClassType.NONE) {
+            Lox.error(thisValue.keyword, "Can't use 'this' outside of a class.");
+        }
+        this.resolveLocal(thisValue, thisValue.keyword);
     }
 }
