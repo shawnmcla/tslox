@@ -1,60 +1,3 @@
-import { Lox } from "./Lox";
-
-// class AstPrinter implements ExprVisitor<string> {
-//     parenthesize(name: string, ...exprs: Expr[]): string {
-//         const parts = [];
-//         parts.push("(");
-//         parts.push(name);
-//         for (const expr of exprs) {
-//             parts.push(" ");
-//             parts.push(expr.accept(this));
-//         }
-//         parts.push(")");
-
-//         return parts.join('');
-//     }
-
-//     visitBinaryExpr(binary: BinaryExpr): string {
-//         return this.parenthesize(binary.operator.lexeme,
-//             binary.left, binary.right);
-//     }
-//     visitGroupingExpr(grouping: GroupingExpr): string {
-//         return this.parenthesize("group", grouping.expr);
-//     }
-//     visitLiteralExpr(literal: LiteralExpr): string {
-//         if (literal.value == null) return "nil";
-//         return literal.value.toString();
-//     }
-//     visitUnaryExpr(unary: UnaryExpr): string {
-//         return this.parenthesize(unary.operator.lexeme, unary.right);
-//     }
-//     print(expr: Expr): string {
-//         return expr.accept(this);
-//     }
-// }
-
-// const s = `print 5 + (3 * 2);
-// print 5;
-// print "Hello world";
-// print "one";
-// print true;
-// print 2 + 1;`;
-
-// Lox.run(s);
-
-// const s2 = `var a = 1000;
-// print a;
-// var b = 2500;
-// print b;
-// print "Added:";
-// print a + b;
-// a = -999;
-// print a;
-// print "Subbed";
-// print a - b;`;
-
-// Lox.run(s2);
-
 
 const ss = `
 var a = "global a";
@@ -77,4 +20,69 @@ print a;
 print b;
 print c;`
 
-Lox.run(ss);
+let worker: Worker | undefined;
+function reset() {
+  worker?.terminate();
+  worker = new Worker(new URL("./LoxWorker.ts", import.meta.url).href, { type: "module" });
+  worker.onmessage = (e) => {
+    console.debug("Main:: Received message", e.data);
+    const { type } = e.data;
+    switch (type) {
+      case "write":
+        write(e.data.text);
+        break;
+      case "write-err":
+        writeError(e.data.text);
+        break;
+      case "write-warn":
+        writeWarning(e.data.text);
+        break;
+      default:
+        console.warn("Main:: Unhandled message type", e.data);
+        break;
+    }
+  }
+}
+
+reset();
+
+const domConsole = document?.querySelector(".console");
+const domOutput = domConsole?.querySelector(".output");
+const domInput = domConsole?.querySelector("#input");
+
+domInput?.addEventListener("keydown", (e) => {
+  if (e.key == "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    const input = (e.target as HTMLInputElement).value ?? "";
+    if (input.startsWith("#")) {
+      switch (input) {
+        case "#reset":
+          reset();
+      }
+    } else {
+      worker.postMessage({ type: "run", script: input });
+    }
+    (e.target as HTMLInputElement).value = "";
+  }
+});
+
+function addStdoutLine(text: string, className?: string) {
+  const pre = document.createElement("pre");
+  pre.innerText = text;
+  if (className) pre.classList.add(className);
+  domOutput?.append(pre);
+}
+
+function write(text: string) {
+  addStdoutLine(text);
+}
+
+function writeError(text: string) {
+  addStdoutLine(text, "error");
+}
+
+function writeWarning(text: string) {
+  addStdoutLine(text, "warn");
+}
+
+console.log(domConsole);

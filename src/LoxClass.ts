@@ -3,19 +3,19 @@ import { LoxCallable } from "./LoxCallable";
 import { LoxFunction } from "./LoxFunction";
 import { LoxInstance } from "./LoxInstance";
 
-const LoxMetaClass = { findMethod(name: string): LoxFunction | undefined { return; } };
+//const LoxMetaClass = { findMethod(name: string): LoxFunction | undefined { return; } };
 
-export class LoxClass extends LoxInstance implements LoxCallable {
+export class LoxClass implements LoxCallable {
     public readonly __lox_callable = true;
 
-    constructor(public name: string, private methods: Map<string, LoxFunction>, private staticMethods?: Map<string, LoxFunction>) {
-        const meta = {
-            findMethod(name: string): LoxFunction | undefined { return; },
-            methods: new Map()
-        };
+    constructor(public name: string, private methods: Map<string, LoxFunction>) {
+        // const meta = {
+        //     findMethod(name: string): LoxFunction | undefined { return; },
+        //     methods: new Map()
+        // };
         
-        super(meta as LoxClass);
-        if (staticMethods)
+        //super(meta as LoxClass);
+        //if (staticMethods)
     }
 
     get arity(): number {
@@ -46,5 +46,3 @@ export class LoxClass extends LoxInstance implements LoxCallable {
         return this.name;
     }
 }
-
-Object.setPrototypeOf(LoxMetaClass, LoxClass);

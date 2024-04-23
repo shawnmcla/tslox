@@ -15,7 +15,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     private environment = this.globals;
     private readonly locals: Map<Expr, number> = new Map();
 
-    constructor() {
+    constructor(private lox: Lox) {
         this.globals.define("clock", {
             __lox_callable: true,
             get arity() { return 0; },
@@ -38,7 +38,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
             }
         } catch (e) {
             if (e instanceof RuntimeError) {
-                Lox.runtimeError(e);
+                this.lox.runtimeError(e);
             } else {
                 throw e;
             }
@@ -227,14 +227,14 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     visitExpressionStmt(stmt: ExpressionStmt): void {
         const result = this.evaluate(stmt.expression);
         if (this.replMode && !(stmt.expression instanceof AssignmentExpr)) {
-            Lox.print(this.stringify(result));
+            this.lox.print(this.stringify(result));
         }
     }
 
     visitPrintStmt(stmt: PrintStmt): void {
         const value = this.evaluate(stmt.expression);
         console.log(this.stringify(value));
-        Lox.print(value);
+        this.lox.print(value);
     }
 
     visitVarStmt(stmt: VarStmt): void {
@@ -272,11 +272,11 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         this.environment.define(stmt.name.lexeme, func);
     }
 
-    visitBreakStmt(stmt: BreakStmt): void {
+    visitBreakStmt(_: BreakStmt): void {
         throw new Break();
     }
 
-    visitContinueStmt(stmt: ContinueStmt): void {
+    visitContinueStmt(_: ContinueStmt): void {
         throw new Continue();
     }
 
@@ -290,7 +290,6 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         this.environment.define(stmt.name.lexeme, null);
 
         const methods: Map<string, LoxFunction> = new Map();
-        const statics: Map<Token, Lobj> = new Map();
 
         for(const method of stmt.methods) {
             const func = new LoxFunction(method, this.environment, method.name.lexeme === "init");
