@@ -7,7 +7,7 @@ import { Resolver } from "./Resolver";
 import { Scanner } from "./Scanner";
 
 export class Lox {
-    private interpreter = new Interpreter(this);
+    private interpreter = new Interpreter(this, true);
     private io: LoxIO;
 
     hadError = false;
@@ -61,7 +61,6 @@ export class Lox {
     }
 
     runRepl(source: string): void {
-        //this.print(source, "");
         this.run(source, true);
         this.hadError = false;
     }
@@ -78,6 +77,6 @@ export class Lox {
         resolver.resolveStatements(statements);
         if(this.hadError) return;
 
-        this.interpreter.interpret(statements, isRepl);
+        this.interpreter.interpret(statements);
     }
 }

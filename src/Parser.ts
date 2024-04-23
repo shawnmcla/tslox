@@ -243,6 +243,12 @@ export class Parser {
 
     function(kind: string): FunctionStmt {
         const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
+        // Check if we're defining a getter `getterName { ... }` i.e. no param list
+        if(kind === "method" && this.match(TokenType.LEFT_BRACE)) {
+            console.debug("Parsing getter");
+            const body = this.block();
+            return new FunctionStmt(name, [], body, true);
+        }
         this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
         const parameters: Token[] = [];
         if (!this.check(TokenType.RIGHT_PAREN)) {

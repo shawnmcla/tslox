@@ -158,7 +158,7 @@ export class FunctionStmt extends Stmt {
     accept<T>(visitor: StmtVisitor<T>): T {
         return visitor.visitFunctionStmt(this);
     }
-    constructor(public name: Token , public params: Token[], public body: Stmt[]) { super(); }
+    constructor(public name: Token , public params: Token[], public body: Stmt[], public isGetter: boolean = false) { super(); }
 }
 
 export class BreakStmt extends Stmt {

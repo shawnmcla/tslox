@@ -9,7 +9,7 @@ import { LoxInstance } from "./LoxInstance";
 export class LoxFunction implements LoxCallable {
     public readonly __lox_callable = true;
 
-    constructor(private declaration: FunctionStmt, private closure: Environment, private isInitializer: boolean) { }
+    constructor(private declaration: FunctionStmt, private closure: Environment, private isInitializer: boolean, public isGetter: boolean = false) { }
 
     get arity(): number {
         return this.declaration.params.length;
@@ -41,10 +41,10 @@ export class LoxFunction implements LoxCallable {
     boundTo(instance: LoxInstance): LoxFunction {
         const environment = new Environment(this.closure);
         environment.define("this", instance);
-        return new LoxFunction(this.declaration, environment, this.isInitializer);
+        return new LoxFunction(this.declaration, environment, this.isInitializer, this.isGetter);
     }
 
     toString(): string {
-        return `<fn ${this.declaration.name.lexeme}>`;
+        return `<${this.isGetter ? "getter" : "fn"} ${this.declaration.name.lexeme}>`;
     }
 }

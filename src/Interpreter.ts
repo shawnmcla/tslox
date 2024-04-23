@@ -10,12 +10,12 @@ import { LoxInstance } from "./LoxInstance";
 export type Lobj = any
 
 export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
-    private replMode = false;
+    private printNext = false;
     public globals = new Environment();
     private environment = this.globals;
     private readonly locals: Map<Expr, number> = new Map();
 
-    constructor(private lox: Lox) {
+    constructor(private lox: Lox, private replMode: boolean = false) {
         this.globals.define("clock", {
             __lox_callable: true,
             get arity() { return 0; },
@@ -30,10 +30,12 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         this.locals.set(expr, depth);
     }
 
-    interpret(statements: Stmt[], isRepl: boolean = false): void {
+    interpret(statements: Stmt[]): void {
         try {
-            this.replMode = isRepl;
             for (const statement of statements) {
+                if (this.replMode && statement instanceof ExpressionStmt) {
+                    this.printNext = true;
+                }
                 this.execute(statement);
             }
         } catch (e) {
@@ -43,7 +45,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
                 throw e;
             }
         } finally {
-            this.replMode = false;
+            this.printNext = false;
         }
     }
 
@@ -204,14 +206,20 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     visitGetExpr(get: GetExpr): Lobj {
         const object = this.evaluate(get.object);
         if (object instanceof LoxInstance) {
-            return object.get(get.name);
+            const property = object.get(get.name);
+            console.info(property);
+            if (property instanceof LoxFunction && property.isGetter) {
+                return property.call(this, []);
+            } else {
+                return property;
+            }
         }
         throw new RuntimeError(get.name, "Only instances have properties.");
     }
 
     visitSetExpr(set: SetExpr): Lobj {
         const object = this.evaluate(set.object);
-        if(!(object instanceof LoxInstance)) {
+        if (!(object instanceof LoxInstance)) {
             throw new RuntimeError(set.name, "Only instances have fields.");
         }
 
@@ -221,13 +229,13 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     }
 
     visitThisExpr(thisValue: ThisExpr) {
-        return this.lookUpVariable(thisValue.keyword, thisValue);    
+        return this.lookUpVariable(thisValue.keyword, thisValue);
     }
 
     visitExpressionStmt(stmt: ExpressionStmt): void {
         const result = this.evaluate(stmt.expression);
-        if (this.replMode && !(stmt.expression instanceof AssignmentExpr)) {
-            this.lox.print(this.stringify(result));
+        if (this.replMode && this.printNext) {
+            this.lox.print(this.stringify(result), "> ");
         }
     }
 
@@ -291,8 +299,8 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
         const methods: Map<string, LoxFunction> = new Map();
 
-        for(const method of stmt.methods) {
-            const func = new LoxFunction(method, this.environment, method.name.lexeme === "init");
+        for (const method of stmt.methods) {
+            const func = new LoxFunction(method, this.environment, method.name.lexeme === "init", method.isGetter);
             methods.set(method.name.lexeme, func);
         }
 
