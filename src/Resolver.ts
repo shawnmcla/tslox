@@ -25,7 +25,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         return this.scopes[this.scopes.length - 1];
     }
 
-    constructor(private interpreter: Interpreter) { }
+    constructor(private interpreter: Interpreter, private lox: Lox) { }
 
     resolveStatements(statements: Stmt[]): void {
         for (const statement of statements) {
@@ -77,7 +77,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         if (this.scopes.length === 0) return;
         const scope = this.peekScope();
         if (scope.has(name.lexeme)) {
-            Lox.error(name, "Already a variable with this name in this scope.");
+            this.lox.error(name, "Already a variable with this name in this scope.");
         }
         scope.set(name.lexeme, false);
     }
@@ -130,24 +130,24 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     visitBreakStmt(stmt: BreakStmt): void {
         if (this.loopDepth <= 0) {
-            Lox.error(stmt.keyword, "Break statement can only be used inside a loop.");
+            this.lox.error(stmt.keyword, "Break statement can only be used inside a loop.");
         }
     }
 
     visitContinueStmt(stmt: ContinueStmt): void {
         if (this.loopDepth <= 0) {
-            Lox.error(stmt.keyword, "Break statement can only be used inside a loop.");
+            this.lox.error(stmt.keyword, "Break statement can only be used inside a loop.");
         }
     }
 
     visitReturnStmt(stmt: ReturnStmt): void {
         if (this.currentFunction === FunctionType.NONE) {
-            Lox.error(stmt.keyword, "Can't return from top-level code.");
+            this.lox.error(stmt.keyword, "Can't return from top-level code.");
         }
 
         if (stmt.value) {
             if (this.currentFunction === FunctionType.INITIALIZER) {
-                Lox.error(stmt.keyword, "Cannot return a value from an initializer.");
+                this.lox.error(stmt.keyword, "Cannot return a value from an initializer.");
             }
             this.resolveExpression(stmt.value);
         }
@@ -190,7 +190,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     visitVariableExpr(variable: VariableExpr): void {
         if (this.scopes.length > 0 && this.peekScope().get(variable.name.lexeme) === false) {
-            Lox.error(variable.name, "Can't read local variable in its own initializer.");
+            this.lox.error(variable.name, "Can't read local variable in its own initializer.");
         }
 
         this.resolveLocal(variable, variable.name);
@@ -225,7 +225,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     visitThisExpr(thisValue: ThisExpr): void {
         if (this.currentClass === ClassType.NONE) {
-            Lox.error(thisValue.keyword, "Can't use 'this' outside of a class.");
+            this.lox.error(thisValue.keyword, "Can't use 'this' outside of a class.");
         }
         this.resolveLocal(thisValue, thisValue.keyword);
     }

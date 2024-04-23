@@ -74,7 +74,7 @@ export class Lox {
         const statements = parser.parse();
         if(this.hadError || !statements) return;
 
-        const resolver = new Resolver(this.interpreter);
+        const resolver = new Resolver(this.interpreter, this);
         resolver.resolveStatements(statements);
         if(this.hadError) return;
 
