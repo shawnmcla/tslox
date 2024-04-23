@@ -1,3 +1,4 @@
+import { samples } from "./samples";
 
 const ss = `
 var a = "global a";
@@ -46,14 +47,39 @@ function reset() {
 
 reset();
 
+const domSamples = document?.querySelector(".samples");
+const domSamplesSelect = domSamples?.querySelector("select");
+const domSamplesButton = domSamples?.querySelector("button");
+
+let option: HTMLOptionElement | undefined;
+for (const sample in samples) {
+  option = document.createElement("option");
+  option.value = sample;
+  option.textContent = sample;
+  domSamplesSelect?.append(option);
+}
+
+if (option) {
+  domSamplesSelect.value = option.value;
+}
+
 const domConsole = document?.querySelector(".console");
 const domOutput = domConsole?.querySelector(".output");
 const domInput = domConsole?.querySelector("#input");
 
+domSamplesButton?.addEventListener("click", (e) => {
+  const sample = domSamplesSelect?.value;
+  if (sample && sample !== "") {
+    console.info("Loading sample: " + sample);
+    const sampleText = samples[sample];
+    domInput.value = sampleText;
+  }
+});
+
 domOutput?.addEventListener("click", (e) => {
   let closest = e.target.closest('.input');
-  if(closest) {
-    const restoreText = closest.textContent;
+  if (closest) {
+    const restoreText = closest.innerText;
     domInput.value = restoreText;
   }
 });

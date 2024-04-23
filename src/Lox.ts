@@ -61,11 +61,11 @@ export class Lox {
     }
 
     runRepl(source: string): void {
-        this.run(source, true);
+        this.run(source);
         this.hadError = false;
     }
 
-    run(source: string, isRepl: boolean = false): void {
+    run(source: string): void {
         const scanner = new Scanner(source);
         const tokens = scanner.scanTokens();
         const parser = new Parser(this, tokens);

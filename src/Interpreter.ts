@@ -24,6 +24,15 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
             },
             toString() { return "<native fn>"; }
         });
+
+        this.globals.define("string", {
+            __lox_callable: true,
+            get arity() { return 1; },
+            call(_interpreter: Interpreter, args: Lobj[]): Lobj {
+                return args[0]?.toString() ?? "";
+            },
+            toString() { return "<native fn>"; }
+        })
     }
 
     resolve(expr: Expr, depth: number): void {

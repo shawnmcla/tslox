@@ -69,15 +69,38 @@
       margin-top: 0.2em;
       height: 40vh;
       background: #333;
+
+      min-height: 10em;
     }
+
+    div.samples {
+      background: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      position: fixed;
+      width: 100vw;
+      top: 0;
+    }
+
+    div.samples button { cursor: pointer; }
   </style>
 </head>
 
 <body>
+  <div class="samples">
+    <select name="samples" id="samples">
+      <option value="">Choose a sample</option>
+    </select>
+    <button id="loadSample">Load sample</button>
+  </div>
+
   <div class="console">
     <div class="output"></div>
     <textarea id="input"></textarea>
   </div>
+
 
 
   <script type="module" src="/src/main.ts"></script>
