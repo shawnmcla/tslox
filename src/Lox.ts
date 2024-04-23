@@ -28,7 +28,7 @@ export class Lox {
         }
     }
     
-    public print(text: string, prefix = "> ") {
+    public print(text: string, prefix = "") {
         this.io.write(prefix + text);
     }
 
@@ -61,7 +61,7 @@ export class Lox {
     }
 
     runRepl(source: string): void {
-        this.print(source, "");
+        //this.print(source, "");
         this.run(source, true);
         this.hadError = false;
     }
@@ -69,7 +69,7 @@ export class Lox {
     run(source: string, isRepl: boolean = false): void {
         const scanner = new Scanner(source);
         const tokens = scanner.scanTokens();
-        const parser = new Parser(tokens);
+        const parser = new Parser(this, tokens);
 
         const statements = parser.parse();
         if(this.hadError || !statements) return;

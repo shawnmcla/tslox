@@ -6,7 +6,7 @@ export class Parser {
     private tokens: Token[] = [];
     private cur = 0;
 
-    constructor(tokens: Token[]) {
+    constructor(private lox: Lox, tokens: Token[]) {
         this.tokens = tokens;
     }
 
@@ -23,7 +23,7 @@ export class Parser {
     }
 
     error(token: Token, message: string): Error {
-        Lox.error(token, message);
+        this.lox.error(token, message);
         return new ParseError();
     }
 

@@ -50,6 +50,14 @@ const domConsole = document?.querySelector(".console");
 const domOutput = domConsole?.querySelector(".output");
 const domInput = domConsole?.querySelector("#input");
 
+domOutput?.addEventListener("click", (e) => {
+  let closest = e.target.closest('.input');
+  if(closest) {
+    const restoreText = closest.textContent;
+    domInput.value = restoreText;
+  }
+});
+
 domInput?.addEventListener("keydown", (e) => {
   if (e.key == "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -60,6 +68,7 @@ domInput?.addEventListener("keydown", (e) => {
           reset();
       }
     } else {
+      addStdoutLine(input, "input");
       worker.postMessage({ type: "run", script: input });
     }
     (e.target as HTMLInputElement).value = "";
