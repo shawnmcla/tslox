@@ -67,10 +67,23 @@ domOutput?.addEventListener("click", (e) => {
   }
 });
 
+function fixInput(input: string): string {
+  input = input.trim();
+  // If we have more than one source line, do nothing
+  if(input.split('\n').length > 1) return input;
+
+  // If it already ends with a semicolon or with a curly brace, do nothing
+  const lastChar = input[input.length - 1];
+  if(lastChar === '}' || lastChar === ';') return input;
+
+  // Else, add a semicolon
+  return input + ';';
+}
+
 domInput?.addEventListener("keydown", (e) => {
   if (e.key == "Enter" && !e.shiftKey) {
     e.preventDefault();
-    const input = (e.target as HTMLInputElement).value ?? "";
+    let input = (e.target as HTMLInputElement).value ?? "";
     if (input.startsWith("#")) {
       switch (input) {
         case "#reset":
@@ -78,7 +91,11 @@ domInput?.addEventListener("keydown", (e) => {
       }
     } else {
       addCodeToOutput(input);
-      worker.postMessage({ type: "run", script: input });
+      // REPL Only:
+      // If there is only one source line and it doesn't end with an expected terminator (closing brace, semicolon, etc)
+      // Then we insert a semicolon for the user. This allows typing expressions directly without needing a semicolon for better UX
+      // Of course, this isn't perfect and allows weird things like '{}5+2' but that's OK. It's just a REPL :-)
+      worker.postMessage({ type: "run", script: fixInput(input) });
     }
     (e.target as HTMLInputElement).value = "";
   }

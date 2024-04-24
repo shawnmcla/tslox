@@ -13,7 +13,7 @@ export enum TokenType {
     IDENTIFIER, STRING, NUMBER,
 
     // Keywords.
-    AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
+    AND, CLASS, CONST, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
     PRINT, BREAK, CONTINUE, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
 
     EOF
@@ -136,7 +136,7 @@ export class VarStmt extends Stmt {
     accept<T>(visitor: StmtVisitor<T>): T {
         return visitor.visitVarStmt(this);
     }
-    constructor(public name: Token, public initializer?: Expr) { super(); }
+    constructor(public name: Token, public initializer?: Expr, public isConst?: boolean) { super(); }
 }
 
 export class BlockStmt extends Stmt {

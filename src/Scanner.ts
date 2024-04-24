@@ -19,6 +19,7 @@ export class Scanner {
         [
             ["and", TokenType.AND],
             ["class", TokenType.CLASS],
+            ["const", TokenType.CONST],
             ["else", TokenType.ELSE],
             ["false", TokenType.FALSE],
             ["for", TokenType.FOR],
@@ -193,7 +194,6 @@ export class Scanner {
         }
 
         this.tokens.push(new Token(TokenType.EOF, "", null, { file: this.file, line: this.line, offset: this.start }));
-        console.debug(this.tokens);
         return this.tokens;
     }
 }

@@ -152,11 +152,6 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
     visitVariableExpr(variable: VariableExpr) {
         return this.lookUpVariable(variable.name, variable);
-        // const value = this.environment.get(variable.name);
-        // if (value === undefined) {
-        //     throw new RuntimeError(variable.name, "Cannot access variable before initialization.");
-        // }
-        // return value;
     }
 
     lookUpVariable(name: Token, expr: Expr): Lobj {
@@ -171,12 +166,13 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     visitAssignmentExpr(assignment: AssignmentExpr) {
         const value = this.evaluate(assignment.value);
         const distance = this.locals.get(assignment);
-        if (distance) {
+
+        if (distance !== undefined) {
             this.environment.assignAt(distance, assignment.name, value);
         } else {
             this.globals.assign(assignment.name, value);
         }
-        //this.environment.assign(assignment.name, value);
+
         return value;
     }
 
@@ -255,7 +251,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     visitVarStmt(stmt: VarStmt): void {
         let value: Lobj | undefined;
         if (stmt.initializer) value = this.evaluate(stmt.initializer);
-        this.environment.define(stmt.name.lexeme, value);
+        this.environment.define(stmt.name.lexeme, value, stmt.isConst);
     }
 
     visitBlockStmt(stmt: BlockStmt): void {

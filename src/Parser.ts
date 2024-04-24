@@ -72,6 +72,7 @@ export class Parser {
                 case TokenType.CLASS:
                 case TokenType.FUN:
                 case TokenType.VAR:
+                case TokenType.CONST:
                 case TokenType.FOR:
                 case TokenType.IF:
                 case TokenType.WHILE:
@@ -115,6 +116,7 @@ export class Parser {
             if (this.match(TokenType.CLASS)) return this.classDeclaration();
             if (this.match(TokenType.FUN)) return this.function("function");
             if (this.match(TokenType.VAR)) return this.varDeclaration();
+            if(this.match(TokenType.CONST)) return this.varDeclaration(true);
             return this.statement();
         } catch (e) {
             if (e instanceof ParseError) {
@@ -126,16 +128,21 @@ export class Parser {
         }
     }
 
-    varDeclaration() {
+    varDeclaration(isConst: boolean = false) {
         const name = this.consume(TokenType.IDENTIFIER, "Expect variable name.");
 
         let initializer: Expr | undefined;
-        if (this.match(TokenType.EQUAL)) {
+        // If declared with 'const', we MUST have an initializer
+        if(isConst) {
+            this.consume(TokenType.EQUAL, "Missing initializer in const variable declaration.");
+            initializer = this.expression();
+        }
+        else if (this.match(TokenType.EQUAL)) {
             initializer = this.expression();
         }
 
         this.consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
-        return new VarStmt(name, initializer);
+        return new VarStmt(name, initializer, isConst);
     }
 
     statement(): Stmt {
