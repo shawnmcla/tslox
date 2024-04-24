@@ -63,6 +63,19 @@ var civic = Car(2020, "Honda", "Civic");
 
 print civic.describe();
 print "The car is " + string(civic.age) + " year(s) old";
+
+class Truck < Car {
+    describe() { 
+        return super.describe() + ", a really big truck!";
+    }
+}
+
+var t = Truck(2024, "Honda", "Ridgeline");
+print t.describe();
+`;
+
+const class2 = `
+
 `;
 
 export const samples: Record<string, string> = {

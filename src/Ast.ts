@@ -114,6 +114,13 @@ export class ThisExpr extends Expr {
     constructor(public keyword: Token) { super(); }
 }
 
+export class SuperExpr extends Expr {
+    accept<T>(visitor: ExprVisitor<T>): T {
+        return visitor.visitSuperExpr(this);
+    }
+    constructor(public keyword: Token, public method: Token) { super(); }
+}
+
 export class FunctionExpr extends Expr {
     accept<T>(visitor: ExprVisitor<T>): T {
         return visitor.visitFunctionExpr(this);
@@ -199,7 +206,7 @@ export class ClassStmt extends Stmt {
     accept<T>(visitor: StmtVisitor<T>): T {
         return visitor.visitClassStmt(this);
     }
-    constructor(public name: Token, public methods: FunctionStmt[]) { super(); }
+    constructor(public name: Token, public superclass: VariableExpr | undefined, public methods: FunctionStmt[]) { super(); }
 }
 
 export interface ExprVisitor<T> {
@@ -214,6 +221,7 @@ export interface ExprVisitor<T> {
     visitGetExpr(get: GetExpr): T;
     visitSetExpr(set: SetExpr): T;
     visitThisExpr(thisValue: ThisExpr): T;
+    visitSuperExpr(superExpr: SuperExpr): T;
     visitFunctionExpr(func: FunctionExpr): T;
 }
 

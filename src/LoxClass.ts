@@ -8,7 +8,7 @@ import { LoxInstance } from "./LoxInstance";
 export class LoxClass implements LoxCallable {
     public readonly __lox_callable = true;
 
-    constructor(public name: string, private methods: Map<string, LoxFunction>) {
+    constructor(public name: string, public superclass: LoxClass | undefined, private methods: Map<string, LoxFunction>) {
         // const meta = {
         //     findMethod(name: string): LoxFunction | undefined { return; },
         //     methods: new Map()
@@ -39,6 +39,10 @@ export class LoxClass implements LoxCallable {
     findMethod(name: string): LoxFunction | undefined {
         if (this.methods.has(name)) {
             return this.methods.get(name);
+        }
+
+        if(this.superclass) {
+            return this.superclass.findMethod(name);
         }
     }
 

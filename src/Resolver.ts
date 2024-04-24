@@ -1,4 +1,4 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, SuperExpr, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { Interpreter } from "./Interpreter";
 import { Lox } from "./Lox";
 
@@ -11,7 +11,8 @@ enum FunctionType {
 
 enum ClassType {
     NONE,
-    CLASS
+    CLASS,
+    SUBCLASS
 }
 
 class VarInfo {
@@ -174,6 +175,18 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.declare(stmt.name);
         this.define(stmt.name);
 
+        if(stmt.superclass) {
+            if (stmt.name.lexeme === stmt.superclass.name.lexeme) {
+                this.lox.error(stmt.superclass.name,
+                    "A class can't inherit from itself.");
+            }
+            this.currentClass = ClassType.SUBCLASS;
+            this.resolveExpression(stmt.superclass);
+
+            this.beginScope();
+            this.peekScope().set("super", new VarInfo(true, true));
+        }
+
         this.beginScope();
         this.peekScope().set("this", new VarInfo(true, true));
 
@@ -183,6 +196,9 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         }
 
         this.endScope();
+        if(stmt.superclass) {
+            this.endScope();
+        }
         this.currentClass = enclosingClass;
     }
 
@@ -243,6 +259,17 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
             this.lox.error(thisValue.keyword, "Can't use 'this' outside of a class.");
         }
         this.resolveLocal(thisValue, thisValue.keyword);
+    }
+
+    visitSuperExpr(superExpr: SuperExpr): void {
+        if (this.currentClass === ClassType.NONE) {
+            this.lox.error(superExpr.keyword,
+                "Can't use 'super' outside of a class.");
+          } else if (this.currentClass !== ClassType.SUBCLASS) {
+            this.lox.error(superExpr.keyword,
+                "Can't use 'super' in a class with no superclass.");
+          }
+        this.resolveLocal(superExpr, superExpr.keyword);    
     }
 
     visitFunctionExpr(func: FunctionExpr): void {

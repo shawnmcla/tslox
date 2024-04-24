@@ -1,4 +1,4 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, SuperExpr, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { ParseError } from "./Errors";
 import { Lox } from "./Lox";
 
@@ -291,6 +291,13 @@ export class Parser {
 
     classDeclaration(): Stmt {
         const name = this.consume(TokenType.IDENTIFIER, "Expect class name.");
+
+        let superclass: VariableExpr | undefined;
+        if(this.match(TokenType.LESS)) {
+            this.consume(TokenType.IDENTIFIER, "Expect superclass name.");
+            superclass = new VariableExpr(this.previous());
+        }
+
         this.consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
         const methods: FunctionStmt[] = [];
@@ -299,7 +306,7 @@ export class Parser {
         }
 
         this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
-        return new ClassStmt(name, methods);
+        return new ClassStmt(name, superclass, methods);
     }
 
     breakStatement(): Stmt {
@@ -417,6 +424,13 @@ export class Parser {
 
         if (this.match(TokenType.NUMBER, TokenType.STRING)) {
             return new LiteralExpr(this.previous().literal);
+        }
+
+        if(this.match(TokenType.SUPER)) {
+            const keyword = this.previous();
+            this.consume(TokenType.DOT, "Expect '.' after 'super'.");
+            const method = this.consume(TokenType.IDENTIFIER, "Expect superclass method name.");
+            return new SuperExpr(keyword, method);
         }
 
         if(this.match(TokenType.THIS)) {
