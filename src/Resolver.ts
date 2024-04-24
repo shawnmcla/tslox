@@ -14,14 +14,20 @@ enum ClassType {
     CLASS
 }
 
+class VarInfo {
+    constructor(public defined: boolean, public used: boolean = false) { }
+}
+
+type Scope = Map<string, VarInfo>;
+
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
-    private readonly scopes: Map<string, boolean>[] = [];
+    private readonly scopes: Scope[] = [];
     private currentFunction = FunctionType.NONE;
     private currentClass = ClassType.NONE;
 
     private loopDepth = 0;
 
-    public peekScope(): Map<string, boolean> {
+    public peekScope(): Scope {
         return this.scopes[this.scopes.length - 1];
     }
 
@@ -45,6 +51,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         // Walk scopes backwards, finding nearest match
         for (let i = this.scopes.length - 1; i >= 0; i--) {
             if (this.scopes[i].has(name.lexeme)) {
+                this.scopes[i].get(name.lexeme)!.used = true;
                 // If we find it, we report the number of scope "hops" for this mapping
                 this.interpreter.resolve(expr, this.scopes.length - 1 - i);
                 return;
@@ -70,7 +77,13 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     }
 
     endScope(): void {
-        this.scopes.pop();
+        const scope = this.scopes.pop()!;
+        for (const name of scope.keys()) {
+            const info = scope.get(name)!;
+            if(!info.used) { 
+                this.lox.warn(0, `Variable ${name} unused`)
+            }
+        }
     }
 
     declare(name: Token): void {
@@ -79,12 +92,14 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         if (scope.has(name.lexeme)) {
             this.lox.error(name, "Already a variable with this name in this scope.");
         }
-        scope.set(name.lexeme, false);
+        scope.set(name.lexeme, new VarInfo(false));
     }
 
     define(name: Token) {
         if (this.scopes.length === 0) return;
-        this.peekScope().set(name.lexeme, true);
+        const varInfo = this.peekScope().get(name.lexeme);
+        if (varInfo) varInfo.defined = true;
+        else this.peekScope().set(name.lexeme, new VarInfo(true));
     }
 
     visitExpressionStmt(stmt: ExpressionStmt): void {
@@ -157,16 +172,16 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         const enclosingClass = this.currentClass;
         this.currentClass = ClassType.CLASS;
         this.declare(stmt.name);
+        this.define(stmt.name);
 
         this.beginScope();
-        this.peekScope().set("this", true);
+        this.peekScope().set("this", new VarInfo(true, true));
 
         for (const method of stmt.methods) {
             const declaration = method.name.lexeme === "init" ? FunctionType.INITIALIZER : FunctionType.METHOD;
             this.resolveFunction(method, declaration);
         }
 
-        this.define(stmt.name);
         this.endScope();
         this.currentClass = enclosingClass;
     }
@@ -189,7 +204,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     }
 
     visitVariableExpr(variable: VariableExpr): void {
-        if (this.scopes.length > 0 && this.peekScope().get(variable.name.lexeme) === false) {
+        if (this.scopes.length > 0 && this.peekScope().get(variable.name.lexeme)?.defined === false) {
             this.lox.error(variable.name, "Can't read local variable in its own initializer.");
         }
 

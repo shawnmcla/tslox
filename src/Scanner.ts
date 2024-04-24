@@ -13,6 +13,7 @@ export class Scanner {
     private cur: number = 0;
     private start: number = 0;
     private line: number = 0;
+    private file: string = "";
 
     private static keywords: Map<string, TokenType> = new Map(
         [
@@ -37,7 +38,7 @@ export class Scanner {
         ]
     );
 
-    constructor(public source: string) { }
+    constructor(private lox: Lox, public source: string) { }
 
     get isAtEnd(): boolean {
         return this.cur >= this.source.length;
@@ -81,7 +82,7 @@ export class Scanner {
 
     addToken(type: TokenType, literal: any = null): void {
         const text = this.source.substring(this.start, this.cur);
-        this.tokens.push(new Token(type, text, literal, this.line));
+        this.tokens.push(new Token(type, text, literal, { file: this.file, line: this.line, offset: this.start}));
     }
 
     string(): void {
@@ -91,7 +92,7 @@ export class Scanner {
         }
 
         if (this.isAtEnd) {
-            Lox.error(this.line, "Unterminated string.");
+            this.lox.error(this.line, "Unterminated string.");
             return;
         }
 
@@ -179,7 +180,7 @@ export class Scanner {
                 } else if (this.isAlpha(c)) {
                     this.identifier();
                 } else {
-                    Lox.error(this.line, "Unexpected character.");
+                    this.lox.error(this.line, "Unexpected character.");
                 }
                 break;
         }
@@ -191,7 +192,8 @@ export class Scanner {
             this.scanToken();
         }
 
-        this.tokens.push(new Token(TokenType.EOF, "", null, this.line));
+        this.tokens.push(new Token(TokenType.EOF, "", null, { file: this.file, line: this.line, offset: this.start }));
+        console.debug(this.tokens);
         return this.tokens;
     }
 }

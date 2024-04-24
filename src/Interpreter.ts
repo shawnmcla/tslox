@@ -63,7 +63,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     }
 
     stringify(obj: Lobj) {
-        if (obj === null) return "nil";
+        if (obj == null) return "nil";
 
         if (typeof obj === "number") {
             let text = obj.toString();
@@ -216,7 +216,6 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         const object = this.evaluate(get.object);
         if (object instanceof LoxInstance) {
             const property = object.get(get.name);
-            console.info(property);
             if (property instanceof LoxFunction && property.isGetter) {
                 return property.call(this, []);
             } else {
@@ -250,7 +249,6 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
     visitPrintStmt(stmt: PrintStmt): void {
         const value = this.evaluate(stmt.expression);
-        console.log(this.stringify(value));
         this.lox.print(value);
     }
 

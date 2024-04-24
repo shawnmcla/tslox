@@ -12,7 +12,6 @@ export class Environment {
     }
 
     get(name: Token): Lobj {
-        console.log("GET", name);
         if(this.values.has(name.lexeme)) return this.values.get(name.lexeme);
 
         if (this.enclosing != null) return this.enclosing.get(name);
@@ -35,7 +34,6 @@ export class Environment {
 
     assign(name: any, value: any): void {
         if(this.values.has(name.lexeme)) {
-            console.debug("ASSIGN", name, value);
             this.values.set(name.lexeme, value);
             return;
         }

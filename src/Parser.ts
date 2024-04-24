@@ -99,7 +99,6 @@ export class Parser {
 
             if (expr instanceof VariableExpr) {
                 const name = expr.name;
-                console.debug("ASSIGNMENT", name, value);
                 return new AssignmentExpr(name, value);
             } else if (expr instanceof GetExpr) {
                 return new SetExpr(expr.object, expr.name, value);
@@ -245,7 +244,6 @@ export class Parser {
         const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
         // Check if we're defining a getter `getterName { ... }` i.e. no param list
         if(kind === "method" && this.match(TokenType.LEFT_BRACE)) {
-            console.debug("Parsing getter");
             const body = this.block();
             return new FunctionStmt(name, [], body, true);
         }

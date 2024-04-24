@@ -32,10 +32,16 @@ export class Lox {
         this.io.write(prefix + text);
     }
 
-    private report(line: number, where: string, message: string): void {
+    private reportError(line: number, where: string, message: string): void {
         const text = `[line ${line}] Error ${where}: ${message}`;
         console.error(text);
         this.io.writeError(text);
+    }
+
+    private reportWarning(line: number, where: string, message: string): void {
+        const text = `[line ${line}] Warning ${where}: ${message}`;
+        console.warn(text);
+        this.io.writeWarning(text);
     }
 
     runtimeError(error: RuntimeError) {
@@ -45,18 +51,32 @@ export class Lox {
         this.io.writeError(text);
     }
 
+    warn(line: number, message: string): void
+    warn(token: Token, message: string): void
+    warn(lineOrToken: number | Token, message: string): void {
+        if (typeof lineOrToken === "number") {
+            this.reportWarning(lineOrToken, "", message);
+            return;
+        }
+        if (lineOrToken.type === TokenType.EOF) {
+            this.reportWarning(lineOrToken.line, "at end", message);
+        } else {
+            this.reportWarning(lineOrToken.line, `at '${lineOrToken.lexeme}'`, message);
+        }
+    }
+
     error(line: number, message: string): void
     error(token: Token, message: string): void
     error(lineOrToken: number | Token, message: string): void {
         this.hadError = true;
         if (typeof lineOrToken === "number") {
-            this.report(lineOrToken, "", message);
+            this.reportError(lineOrToken, "", message);
             return;
         }
         if (lineOrToken.type === TokenType.EOF) {
-            this.report(lineOrToken.line, "at end", message);
+            this.reportError(lineOrToken.line, "at end", message);
         } else {
-            this.report(lineOrToken.line, `at '${lineOrToken.lexeme}'`, message);
+            this.reportError(lineOrToken.line, `at '${lineOrToken.lexeme}'`, message);
         }
     }
 
@@ -66,7 +86,7 @@ export class Lox {
     }
 
     run(source: string): void {
-        const scanner = new Scanner(source);
+        const scanner = new Scanner(this, source);
         const tokens = scanner.scanTokens();
         const parser = new Parser(this, tokens);
 
