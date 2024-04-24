@@ -1,4 +1,4 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { Interpreter } from "./Interpreter";
 import { Lox } from "./Lox";
 
@@ -59,7 +59,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         }
     }
 
-    resolveFunction(func: FunctionStmt, type: FunctionType): void {
+    resolveFunction(func: FunctionStmt | FunctionExpr, type: FunctionType): void {
         const enclosingFunction = this.currentFunction;
         this.currentFunction = type;
         this.beginScope();
@@ -243,5 +243,9 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
             this.lox.error(thisValue.keyword, "Can't use 'this' outside of a class.");
         }
         this.resolveLocal(thisValue, thisValue.keyword);
+    }
+
+    visitFunctionExpr(func: FunctionExpr): void {
+        this.resolveFunction(func, FunctionType.FUNCTION);
     }
 }

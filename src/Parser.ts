@@ -1,6 +1,12 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { ParseError } from "./Errors";
 import { Lox } from "./Lox";
+
+interface FunctionDefinition {
+    parameters: Token[],
+    body: Stmt[],
+    isGetter?: boolean,
+}
 
 export class Parser {
     private tokens: Token[] = [];
@@ -114,7 +120,7 @@ export class Parser {
     declaration(): Stmt | undefined {
         try {
             if (this.match(TokenType.CLASS)) return this.classDeclaration();
-            if (this.match(TokenType.FUN)) return this.function("function");
+            if (this.match(TokenType.FUN)) return this.functionStatement("function");
             if (this.match(TokenType.VAR)) return this.varDeclaration();
             if(this.match(TokenType.CONST)) return this.varDeclaration(true);
             return this.statement();
@@ -247,14 +253,23 @@ export class Parser {
         return body;
     }
 
-    function(kind: string): FunctionStmt {
+    functionStatement(kind: string): FunctionStmt {
         const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
-        // Check if we're defining a getter `getterName { ... }` i.e. no param list
+        const {parameters, body, isGetter } = this.function(kind);
+        return new FunctionStmt(name, parameters, body, isGetter ?? false);
+    }
+    
+    function(kind: string): FunctionDefinition {
         if(kind === "method" && this.match(TokenType.LEFT_BRACE)) {
-            const body = this.block();
-            return new FunctionStmt(name, [], body, true);
+            return { parameters: [], body: this.block(), isGetter: true };
         }
-        this.consume(TokenType.LEFT_PAREN, `Expect '(' after ${kind} name.`);
+
+        this.consume(TokenType.LEFT_PAREN, 
+            kind === "function expression" ?
+            `Expect '(' after fun keyword.` :
+            `Expect '(' after ${kind} name.`
+        );
+
         const parameters: Token[] = [];
         if (!this.check(TokenType.RIGHT_PAREN)) {
             do {
@@ -269,7 +284,9 @@ export class Parser {
 
         this.consume(TokenType.LEFT_BRACE, `Expect '{' before ${kind} body.`);
         const body = this.block();
-        return new FunctionStmt(name, parameters, body);
+        return {
+            parameters, body
+        }
     }
 
     classDeclaration(): Stmt {
@@ -278,7 +295,7 @@ export class Parser {
 
         const methods: FunctionStmt[] = [];
         while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd) {
-            methods.push(this.function("method"));
+            methods.push(this.functionStatement("method"));
         }
 
         this.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
@@ -414,6 +431,11 @@ export class Parser {
             const expr = this.expression();
             this.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
             return new GroupingExpr(expr);
+        }
+
+        if(this.match(TokenType.FUN)) {
+            const {parameters, body} = this.function("function expression");
+            return new FunctionExpr(parameters, body);
         }
 
         throw this.error(this.peek(), "Expect expression.");

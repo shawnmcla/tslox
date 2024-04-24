@@ -1,4 +1,4 @@
-import { FunctionStmt } from "./Ast";
+import { FunctionExpr, FunctionStmt } from "./Ast";
 import { Environment } from "./Environment";
 import { Return } from "./Errors";
 import { Interpreter, Lobj } from "./Interpreter";
@@ -9,7 +9,7 @@ import { LoxInstance } from "./LoxInstance";
 export class LoxFunction implements LoxCallable {
     public readonly __lox_callable = true;
 
-    constructor(private declaration: FunctionStmt, private closure: Environment, private isInitializer: boolean, public isGetter: boolean = false) { }
+    constructor(private declaration: FunctionStmt | FunctionExpr, private closure: Environment, private isInitializer: boolean, public isGetter: boolean = false) { }
 
     get arity(): number {
         return this.declaration.params.length;
@@ -45,6 +45,10 @@ export class LoxFunction implements LoxCallable {
     }
 
     toString(): string {
-        return `<${this.isGetter ? "getter" : "fn"} ${this.declaration.name.lexeme}>`;
+        if(this.declaration instanceof FunctionStmt) {
+            return `<${this.isGetter ? "getter" : "fn"} ${this.declaration.name.lexeme}>`;
+        } else {
+            return `<fn>`;
+        }
     }
 }

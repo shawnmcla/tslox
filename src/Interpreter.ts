@@ -1,4 +1,4 @@
-import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, Token, TokenType, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt, ClassStmt, GetExpr, SetExpr, ThisExpr } from "./Ast";
+import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, Token, TokenType, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt, ClassStmt, GetExpr, SetExpr, ThisExpr, FunctionExpr } from "./Ast";
 import { Environment } from "./Environment";
 import { Break, Continue, Return, RuntimeError } from "./Errors";
 import { Lox } from "./Lox";
@@ -41,10 +41,10 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
     interpret(statements: Stmt[]): void {
         try {
+            if (this.replMode && statements.length > 0 && statements[0] instanceof ExpressionStmt) {
+                this.printNext = true;
+            }
             for (const statement of statements) {
-                if (this.replMode && statement instanceof ExpressionStmt) {
-                    this.printNext = true;
-                }
                 this.execute(statement);
             }
         } catch (e) {
@@ -154,6 +154,10 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         return this.lookUpVariable(variable.name, variable);
     }
 
+    visitFunctionExpr(func: FunctionExpr) {
+        return new LoxFunction(func, this.environment, false);
+    }
+
     lookUpVariable(name: Token, expr: Expr): Lobj {
         const distance = this.locals.get(expr);
         if (distance !== undefined) {
@@ -240,6 +244,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         const result = this.evaluate(stmt.expression);
         if (this.replMode && this.printNext) {
             this.lox.print(this.stringify(result), "> ");
+            this.printNext = false;
         }
     }
 

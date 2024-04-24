@@ -17,7 +17,6 @@ export class Environment {
 
     define(name: string, value: Lobj, isConst: boolean = false): void {
         this.values.set(name, this.box(value, isConst));
-        console.log(this.values);
     }
 
     unbox(value: BoxedValue): Lobj {

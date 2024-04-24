@@ -8,6 +8,14 @@ const fib = `
     print "fib(15) => " + string(fib(15));
 `;
 
+const functionExpressions = `
+var sum = (fun (a,b) { return a + b; })(1,2);
+print sum;
+
+var double = fun(x) { return x * 2; };
+
+print double(10);`;
+
 const scope = `
 var a = "global a";
 var b = "global b";
@@ -61,6 +69,7 @@ export const samples: Record<string, string> = {
     helloWorld,
     class1,
     fib,
-    scope
+    scope,
+    functionExpressions
 }
 
