@@ -74,8 +74,13 @@ var t = Truck(2024, "Honda", "Ridgeline");
 print t.describe();
 `;
 
-const class2 = `
+const array1 = `
+const list = array(3);
+list[0] = "hello";
+list[1] = "friend";
+list[2] = ":^)";
 
+for(var i = 0; i < 3; i = i + 1) { print list[i]; }
 `;
 
 export const samples: Record<string, string> = {
@@ -83,6 +88,7 @@ export const samples: Record<string, string> = {
     class1,
     fib,
     scope,
-    functionExpressions
+    functionExpressions,
+    array1
 }
 

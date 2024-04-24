@@ -1,4 +1,4 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, SuperExpr, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, SuperExpr, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { Interpreter } from "./Interpreter";
 import { Lox } from "./Lox";
 
@@ -249,11 +249,22 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.resolveExpression(get.object);
     }
 
+    visitIndexGetExpr(get: IndexGetExpr): void {
+        this.resolveExpression(get.object);
+        this.resolveExpression(get.index);    
+    }
+
     visitSetExpr(set: SetExpr): void {
         this.resolveExpression(set.value);
         this.resolveExpression(set.object);
     }
 
+    visitIndexSetExpr(set: IndexSetExpr): void {
+        this.resolveExpression(set.value);
+        this.resolveExpression(set.index);
+        this.resolveExpression(set.object);
+    }
+    
     visitThisExpr(thisValue: ThisExpr): void {
         if (this.currentClass === ClassType.NONE) {
             this.lox.error(thisValue.keyword, "Can't use 'this' outside of a class.");

@@ -1,6 +1,6 @@
 import { Interpreter } from "./Interpreter";
 import { LoxCallable } from "./LoxCallable";
-import { LoxFunction } from "./LoxFunction";
+import { LoxFunctionLike } from "./LoxFunction";
 import { LoxInstance } from "./LoxInstance";
 
 //const LoxMetaClass = { findMethod(name: string): LoxFunction | undefined { return; } };
@@ -8,7 +8,7 @@ import { LoxInstance } from "./LoxInstance";
 export class LoxClass implements LoxCallable {
     public readonly __lox_callable = true;
 
-    constructor(public name: string, public superclass: LoxClass | undefined, private methods: Map<string, LoxFunction>) {
+    constructor(public name: string, public superclass: LoxClass | undefined, private methods: Map<string, LoxFunctionLike>) {
         // const meta = {
         //     findMethod(name: string): LoxFunction | undefined { return; },
         //     methods: new Map()
@@ -36,7 +36,7 @@ export class LoxClass implements LoxCallable {
         return instance;
     }
 
-    findMethod(name: string): LoxFunction | undefined {
+    findMethod(name: string): LoxFunctionLike | undefined {
         if (this.methods.has(name)) {
             return this.methods.get(name);
         }

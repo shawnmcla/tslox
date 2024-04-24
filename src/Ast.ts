@@ -1,5 +1,6 @@
 export enum TokenType {
     // Single-character tokens.
+    LEFT_BRACKET, RIGHT_BRACKET,
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
     COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
 
@@ -100,11 +101,25 @@ export class GetExpr extends Expr {
     constructor(public object: Expr, public name: Token) { super(); }
 }
 
+export class IndexGetExpr extends Expr {
+    accept<T>(visitor: ExprVisitor<T>): T {
+        return visitor.visitIndexGetExpr(this);
+    }
+    constructor(public bracket: Token, public object: Expr, public index: Expr) { super(); }
+}
+
 export class SetExpr extends Expr {
     accept<T>(visitor: ExprVisitor<T>): T {
         return visitor.visitSetExpr(this);
     }
     constructor(public object: Expr, public name: Token, public value: Expr) { super(); }
+}
+
+export class IndexSetExpr extends Expr {
+    accept<T>(visitor: ExprVisitor<T>): T {
+        return visitor.visitIndexSetExpr(this);
+    }
+    constructor(public bracket: Token, public object: Expr, public index: Expr, public value: Expr) { super(); }
 }
 
 export class ThisExpr extends Expr {
@@ -219,7 +234,9 @@ export interface ExprVisitor<T> {
     visitLogicalExpr(logical: LogicalExpr): T;
     visitCallExpr(call: CallExpr): T;
     visitGetExpr(get: GetExpr): T;
+    visitIndexGetExpr(get: IndexGetExpr): T;
     visitSetExpr(set: SetExpr): T;
+    visitIndexSetExpr(set: IndexSetExpr): T;
     visitThisExpr(thisValue: ThisExpr): T;
     visitSuperExpr(superExpr: SuperExpr): T;
     visitFunctionExpr(func: FunctionExpr): T;

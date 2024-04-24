@@ -135,6 +135,8 @@ export class Scanner {
     scanToken(): void {
         const c = this.advance();
         switch (c) {
+            case '[': this.addToken(TokenType.LEFT_BRACKET); break;
+            case ']': this.addToken(TokenType.RIGHT_BRACKET); break;
             case '(': this.addToken(TokenType.LEFT_PAREN); break;
             case ')': this.addToken(TokenType.RIGHT_PAREN); break;
             case '{': this.addToken(TokenType.LEFT_BRACE); break;

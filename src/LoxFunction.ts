@@ -5,11 +5,42 @@ import { Interpreter, Lobj } from "./Interpreter";
 import { LoxCallable } from "./LoxCallable";
 import { LoxInstance } from "./LoxInstance";
 
+export abstract class LoxFunctionLike implements LoxCallable {
+    public readonly __lox_callable: boolean = true;
+    abstract get arity(): number;
+    abstract call(interpreter: Interpreter, args: any[]): Lobj;
+    abstract boundTo(instance: LoxInstance): LoxFunctionLike;
+    toString(): string {
+        return `<fn>`;
+    }
+}
 
-export class LoxFunction implements LoxCallable {
+export class LoxNativeFunction extends LoxFunctionLike {
+    public thisValue: LoxInstance | undefined;
+    constructor(private jsFunction: Function) { super(); }
+
+    get arity(): number {
+        let count = this.jsFunction.length - 1;
+        if(count < 0) return 0;
+        // Remove the 'thisValue' from the total
+        return count;
+    }
+
+    call(_: Interpreter, args: any[]) {
+        return this.jsFunction(this.thisValue, ...args);
+    }
+
+    boundTo(instance: LoxInstance): LoxFunctionLike {
+        const boundFn = new LoxNativeFunction(this.jsFunction);
+        boundFn.thisValue = instance;
+        return boundFn;
+    }
+}
+
+export class LoxFunction extends LoxFunctionLike {
     public readonly __lox_callable = true;
 
-    constructor(private declaration: FunctionStmt | FunctionExpr, private closure: Environment, private isInitializer: boolean, public isGetter: boolean = false) { }
+    constructor(private declaration: FunctionStmt | FunctionExpr, private closure: Environment, private isInitializer: boolean, public isGetter: boolean = false) { super(); }
 
     get arity(): number {
         return this.declaration.params.length;

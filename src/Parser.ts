@@ -1,4 +1,4 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, SuperExpr, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, SuperExpr, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { ParseError } from "./Errors";
 import { Lox } from "./Lox";
 
@@ -109,6 +109,8 @@ export class Parser {
                 return new AssignmentExpr(name, value);
             } else if (expr instanceof GetExpr) {
                 return new SetExpr(expr.object, expr.name, value);
+            } else if (expr instanceof IndexGetExpr) {
+                return new IndexSetExpr(expr.bracket, expr.object, expr.index, value);
             }
 
             this.error(equals, "Invalid assignment target.");
@@ -480,6 +482,10 @@ export class Parser {
             } else if (this.match(TokenType.DOT)) {
                 const name = this.consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
                 expr = new GetExpr(expr, name);
+            } else if(this.match(TokenType.LEFT_BRACKET)) {
+                const index = this.expression();
+                this.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index expression.");
+                expr = new IndexGetExpr(this.previous(), expr, index);
             }
             else {
                 break;

@@ -1,11 +1,13 @@
-import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, Token, TokenType, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt, ClassStmt, GetExpr, SetExpr, ThisExpr, FunctionExpr, SuperExpr } from "./Ast";
+import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, Token, TokenType, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt, ClassStmt, GetExpr, SetExpr, ThisExpr, FunctionExpr, SuperExpr, IndexGetExpr, IndexSetExpr } from "./Ast";
 import { Environment } from "./Environment";
 import { Break, Continue, Return, RuntimeError } from "./Errors";
 import { Lox } from "./Lox";
+import { LoxArray } from "./LoxArray";
 import { LoxCallable } from "./LoxCallable";
 import { LoxClass } from "./LoxClass";
-import { LoxFunction } from "./LoxFunction";
+import { LoxFunction, LoxNativeFunction } from "./LoxFunction";
 import { LoxInstance } from "./LoxInstance";
+import { globalFunctions } from "./NativeFunctions";
 
 export type Lobj = any
 
@@ -16,23 +18,9 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     private readonly locals: Map<Expr, number> = new Map();
 
     constructor(private lox: Lox, private replMode: boolean = false) {
-        this.globals.define("clock", {
-            __lox_callable: true,
-            get arity() { return 0; },
-            call(_interpreter: Interpreter, _args: Lobj[]): Lobj {
-                return Date.now() / 1000.0;
-            },
-            toString() { return "<native fn>"; }
-        });
-
-        this.globals.define("string", {
-            __lox_callable: true,
-            get arity() { return 1; },
-            call(_interpreter: Interpreter, args: Lobj[]): Lobj {
-                return args[0]?.toString() ?? "";
-            },
-            toString() { return "<native fn>"; }
-        })
+        for(const functionname in globalFunctions) {
+            this.globals.define(functionname, new LoxNativeFunction(globalFunctions[functionname]));
+        }
     }
 
     resolve(expr: Expr, depth: number): void {
@@ -225,6 +213,23 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         throw new RuntimeError(get.name, "Only instances have properties.");
     }
 
+    visitIndexGetExpr(get: IndexGetExpr) {
+        const object = this.evaluate(get.object);
+        if(!(object instanceof LoxArray)) {
+            throw new RuntimeError(get.bracket, "Can only index array.");
+        }
+
+        const index = this.evaluate(get.index);
+        if(typeof index !== "number") {
+            throw new RuntimeError(get.bracket, "Index must be a number.");
+        }
+
+        if(index < 0) throw new RuntimeError(get.bracket, "Index must be greater or equal to 0.");
+        if(index >= object.innerArray.length) throw new RuntimeError(get.bracket, "Array index out of range.");
+
+        return object.innerArray[index];
+    }
+
     visitSetExpr(set: SetExpr): Lobj {
         const object = this.evaluate(set.object);
         if (!(object instanceof LoxInstance)) {
@@ -233,6 +238,25 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
         const value = this.evaluate(set.value);
         object.set(set.name, value);
+        return value;
+    }
+
+    visitIndexSetExpr(set: IndexSetExpr) {
+        const object = this.evaluate(set.object);
+        if(!(object instanceof LoxArray)) {
+            throw new RuntimeError(set.bracket, "Can only index array.");
+        }
+
+        const index = this.evaluate(set.index);
+        if(typeof index !== "number") {
+            throw new RuntimeError(set.bracket, "Index must be a number.");
+        }
+
+        if(index < 0) throw new RuntimeError(set.bracket, "Index must be greater or equal to 0.");
+        if(index >= object.innerArray.length) throw new RuntimeError(set.bracket, "Array index out of range.");
+
+        const value = this.evaluate(set.value);
+        object.innerArray[index] = value;
         return value;
     }
 
