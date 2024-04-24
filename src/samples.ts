@@ -8,6 +8,27 @@ const fib = `
     print "fib(15) => " + string(fib(15));
 `;
 
+const scope = `
+var a = "global a";
+var b = "global b";
+var c = "global c";
+{
+  var a = "outer a";
+  var b = "outer b";
+  {
+    var a = "inner a";
+    print a;
+    print b;
+    print c;
+  }
+  print a;
+  print b;
+  print c;
+}
+print a;
+print b;
+print c;`;
+
 const class1 = `
 var _CURRENT_YEAR = 2024;
 
@@ -40,5 +61,6 @@ export const samples: Record<string, string> = {
     helloWorld,
     class1,
     fib,
+    scope
 }
 

@@ -1,25 +1,8 @@
 import { samples } from "./samples";
-
-const ss = `
-var a = "global a";
-var b = "global b";
-var c = "global c";
-{
-  var a = "outer a";
-  var b = "outer b";
-  {
-    var a = "inner a";
-    print a;
-    print b;
-    print c;
-  }
-  print a;
-  print b;
-  print c;
-}
-print a;
-print b;
-print c;`
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github-dark.css';
+import javascript from 'highlight.js/lib/languages/javascript';
+hljs.registerLanguage('javascript', javascript);
 
 let worker: Worker | undefined;
 function reset() {
@@ -94,12 +77,19 @@ domInput?.addEventListener("keydown", (e) => {
           reset();
       }
     } else {
-      addStdoutLine(input, "input");
+      addCodeToOutput(input);
       worker.postMessage({ type: "run", script: input });
     }
     (e.target as HTMLInputElement).value = "";
   }
 });
+
+function addCodeToOutput(source: string) {
+  const pre = document.createElement("pre");
+  pre.innerHTML = hljs.highlight("javascript", source).value;
+  pre.classList.add('input');
+  domOutput?.append(pre);
+}
 
 function addStdoutLine(text: string, className?: string) {
   const pre = document.createElement("pre");
