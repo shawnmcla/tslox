@@ -50,7 +50,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
         stmt.accept(this);
     }
 
-    stringify(obj: Lobj) {
+    static stringify(obj: Lobj) {
         if (obj == null) return "nil";
 
         if (typeof obj === "number") {
@@ -278,7 +278,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     visitExpressionStmt(stmt: ExpressionStmt): void {
         const result = this.evaluate(stmt.expression);
         if (this.replMode && this.printNext) {
-            this.lox.print(this.stringify(result), "> ");
+            this.lox.print(Interpreter.stringify(result), "> ");
             this.printNext = false;
         }
     }
