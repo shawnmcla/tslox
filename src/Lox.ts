@@ -9,6 +9,7 @@ import { Scanner } from "./Scanner";
 export class Lox {
     private interpreter = new Interpreter(this, true);
     private io: LoxIO;
+    private flags: Map<string, string> = new Map();
 
     hadError = false;
     hadRuntimeError = false;
@@ -28,6 +29,14 @@ export class Lox {
         }
     }
     
+    public setFlag(flag: string, value: string) {
+        this.flags.set(flag, value);
+    }
+
+    public getFlag(flag: string): string {
+        return this.flags.get(flag) ?? "";
+    }
+
     public print(text: string, prefix = "") {
         this.io.write(prefix + text);
     }
@@ -86,8 +95,15 @@ export class Lox {
     }
 
     run(source: string): void {
+        const printTokens = this.getFlag("print-tokens") === "1";
+        
         const scanner = new Scanner(this, source);
+        
         const tokens = scanner.scanTokens();
+        if(printTokens) {
+            this.io.write(tokens.join('  '));
+        }
+
         const parser = new Parser(this, tokens);
 
         const statements = parser.parse();

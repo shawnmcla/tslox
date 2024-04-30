@@ -16,7 +16,7 @@ class LoxWorkerIO implements LoxIO {
     }
 }
 
-export type LoxMessageType = "run" | "write" | "write-err" | "write-warn";
+export type LoxMessageType = "run" | "write" | "write-err" | "write-warn" | "set";
 
 export interface LoxMessage {
     type: LoxMessageType;
@@ -32,6 +32,18 @@ export interface LoxRunResponse extends LoxMessage {
 
 export interface LoxStdoutMessage extends LoxMessage {
     text: string;
+}
+
+export interface LoxSetMessage extends LoxMessage {
+    flag: string;
+    value: string;
+}
+
+function setMessage(o: any): LoxSetMessage {
+    if(o?.type !== "set") { throw new Error("Invalid message type"); }
+    if(!o?.flag || typeof o.flag !== "string") { throw new Error("Invalid flag"); }
+    if(!o?.value || typeof o.value !== "string") { throw new Error("Invalid value"); }
+    return o as LoxSetMessage;
 }
 
 function runMessage(o: any): LoxRunMessage {
@@ -54,11 +66,19 @@ class LoxWorker {
             case "run":
                 console.debug("LoxWorker::parseMessage - Received run message", data);
                 return runMessage(data);
+            case "set":
+                console.debug("LoxWorker::parseMessage - Received set message", data);
+                return setMessage(data);
             default:
                 console.warn("LoxWorker::parseMessage - Unhandled message type", data);
                 break;
         }
         return data;
+    }
+    
+    setFlag(message: LoxSetMessage) {
+        console.debug("LoxWorker::setFlag - Setting flag", message.flag, message.value);
+        this.lox.setFlag(message.flag, message.value);
     }
 
     runScript(message: LoxRunMessage) {
@@ -73,6 +93,9 @@ class LoxWorker {
         switch(message.type) {
             case "run":
                 this.runScript(message as LoxRunMessage);
+                break;
+            case "set":
+                this.setFlag(message as LoxSetMessage);
                 break;
             default:
                 console.warn("LoxWorker::handleMessage - Unhandled message type", message);

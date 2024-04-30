@@ -30,7 +30,7 @@ export class Token {
     constructor(public type: TokenType, public lexeme: string, public literal: any, public loc: Location) { }
 
     toString(): string {
-        return `${TokenType[this.type]} ${this.lexeme} ${this.literal}`;
+        return `${TokenType[this.type]}(${this.lexeme})`;
     }
 }
 
