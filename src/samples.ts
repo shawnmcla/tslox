@@ -101,6 +101,19 @@ print a1[10];
 print (a1[100] = "foo");
 `;
 
+const foreach1 = `
+var arr = array(10);
+
+for(var i = 0; i < arr.len(); i = i + 1) {
+    arr[i] = i * 2;
+}
+
+foreach(var x in arr) {
+    print "Value is => " + string(x);
+}
+
+`
+
 export const samples: Record<string, string> = {
     helloWorld,
     class1,
@@ -108,6 +121,7 @@ export const samples: Record<string, string> = {
     scope,
     functionExpressions,
     array1,
-    magics1
+    magics1,
+    foreach1
 }
 

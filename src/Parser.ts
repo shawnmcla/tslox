@@ -1,6 +1,77 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, SuperExpr, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { Location, AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, NoLoc, PrintStmt, ReturnStmt, SetExpr, Stmt, SuperExpr, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { ParseError } from "./Errors";
 import { Lox } from "./Lox";
+
+interface CodeGen {
+    declareVar(name: string, value?: any): VarStmt;
+    getVar(name: string): VariableExpr;
+    setVar(name: string | VarStmt, value: number | string | Expr): AssignmentExpr;
+    getIndex(target: Expr, index: number | string | Expr): IndexGetExpr;
+}
+
+class CodeGenProvider implements CodeGen {
+    private static loc: Location = { file: "", line: 0, offset: 0 };
+    private static tok: Token = new Token(TokenType.INTERNAL, "", null, CodeGenProvider.loc);
+
+    token(lexeme: string, type: TokenType = TokenType.INTERNAL): Token {
+        return new Token(type, lexeme, null, CodeGenProvider.loc);
+    }
+
+    valueToExpr(value: any): Expr {
+        if (value instanceof Expr) return value;
+        else return new LiteralExpr(value);
+    }
+
+    declareVar(name: string, value?: any): VarStmt {
+        return new VarStmt(this.token(name), this.valueToExpr(value));
+    }
+
+    get(target: Expr, name: string): GetExpr {
+        return new GetExpr(target, this.token(name));
+    }
+
+    getVar(name: string): VariableExpr {
+        return new VariableExpr(this.token(name));
+    }
+
+    setVar(name: string | VarStmt, value: string | number | Expr): AssignmentExpr {
+        let _name = typeof name === "string" ? this.token(name) : name.name;
+        return new AssignmentExpr(_name, this.valueToExpr(value));
+    }
+
+    getIndex(target: Expr, index: string | number | Expr): IndexGetExpr {
+        return new IndexGetExpr(CodeGenProvider.tok, target, this.valueToExpr(index));
+    }
+
+    private binary(type: TokenType, lhs: any, rhs: any): BinaryExpr {
+        return new BinaryExpr(this.valueToExpr(lhs), this.token("", type), this.valueToExpr(rhs));
+    }
+
+    callMethod(target: Expr, methodName: string, args: Expr[] = []): CallExpr {
+        const method = this.get(target, methodName);
+        return new CallExpr(method, CodeGenProvider.tok, args)
+    }
+
+    add(lhs: any, rhs: any): BinaryExpr {
+        return this.binary(TokenType.PLUS, lhs, rhs);
+    }
+
+    increment(name: string): AssignmentExpr {
+        return this.setVar(name, this.add(this.getVar(name), 1));
+    }
+
+    less(lhs: any, rhs: any): BinaryExpr {
+        return this.binary(TokenType.LESS, lhs, rhs);
+    }
+
+    block(...stmts: (Stmt | Expr)[]): BlockStmt {
+        return new BlockStmt(stmts.map(s => s instanceof Expr ? new ExpressionStmt(s) : s));
+    }
+
+    while(condition: Expr, body: Stmt) {
+        return new WhileStmt(condition, body);
+    }
+}
 
 interface FunctionDefinition {
     parameters: Token[],
@@ -155,6 +226,7 @@ export class Parser {
 
     statement(): Stmt {
         if (this.match(TokenType.FOR)) return this.forStatement();
+        if (this.match(TokenType.FOREACH)) return this.foreachStatement();
         if (this.match(TokenType.IF)) return this.ifStatement();
         if (this.match(TokenType.PRINT)) return this.printStatement();
         if (this.match(TokenType.BREAK)) return this.breakStatement();
@@ -202,6 +274,31 @@ export class Parser {
         this.consume(TokenType.RIGHT_PAREN, "Expect ')' after while condition.");
         const body = this.statement();
         return new WhileStmt(condition, body);
+    }
+
+    foreachStatement(): Stmt {
+        this.consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.");
+        this.consume(TokenType.VAR, "Expect 'var' after '('.")
+        const valueVar = this.consume(TokenType.IDENTIFIER, "Expect identifier after 'var'.");
+        this.consume(TokenType.IN, "Expect 'in' after identifier.");
+        const target = this.expression();
+        this.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+
+        let body = this.statement();
+
+        const g = new CodeGenProvider();
+
+        const indexDecl = g.declareVar("__i0", 0);
+        const valueDecl = g.declareVar(valueVar.lexeme);
+        const valueSet = g.setVar(valueDecl, g.getIndex(target, g.getVar("__i0")));
+
+        const test = g.less(g.getVar("__i0"), g.callMethod(target, "len"));
+        const increment = g.increment("__i0");
+        return g.block(
+            indexDecl,
+            valueDecl,
+            g.while(test, g.block(valueSet, body, increment)),
+        );
     }
 
     forStatement(): Stmt {
@@ -257,7 +354,7 @@ export class Parser {
 
     functionStatement(kind: string): FunctionStmt {
         let name: Token;
-        if(kind === "method" && this.peek().type === TokenType.MAGIC_IDENTIFIER) {
+        if (kind === "method" && this.peek().type === TokenType.MAGIC_IDENTIFIER) {
             name = this.consume(TokenType.MAGIC_IDENTIFIER, `Expect ${kind} name.`);
         }
         else {

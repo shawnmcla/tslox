@@ -14,16 +14,22 @@ export enum TokenType {
     IDENTIFIER, MAGIC_IDENTIFIER, STRING, NUMBER,
 
     // Keywords.
-    AND, CLASS, CONST, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
+    AND, CLASS, CONST, ELSE, FALSE, FUN, FOR, FOREACH, IF, NIL, OR, IN,
     PRINT, BREAK, CONTINUE, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
 
-    EOF
+    EOF, INTERNAL
 }
 
 export interface Location {
     file: string,
     line: number,
     offset: number
+}
+
+export const NoLoc: Location = {
+    file: "",
+    line: 0,
+    offset: 0,
 }
 
 export class Token {

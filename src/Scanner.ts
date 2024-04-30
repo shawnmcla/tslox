@@ -23,6 +23,8 @@ export class Scanner {
             ["else", TokenType.ELSE],
             ["false", TokenType.FALSE],
             ["for", TokenType.FOR],
+            ["foreach", TokenType.FOREACH],
+            ["in", TokenType.IN],
             ["fun", TokenType.FUN],
             ["if", TokenType.IF],
             ["nil", TokenType.NIL],

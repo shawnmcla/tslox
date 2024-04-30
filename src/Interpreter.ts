@@ -321,8 +321,14 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     }
 
     visitWhileStmt(stmt: WhileStmt): void {
+        let i = 0;
         while (this.isTruthy(this.evaluate(stmt.condition))) {
             try {
+                // Safety
+                if(i++ > 1000) {
+                    console.info("Safety triggered");
+                    return;
+                } 
                 this.execute(stmt.body);
             } catch (e) {
                 if (e instanceof Break) return;
