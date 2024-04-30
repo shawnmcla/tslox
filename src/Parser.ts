@@ -124,7 +124,7 @@ export class Parser {
             if (this.match(TokenType.CLASS)) return this.classDeclaration();
             if (this.match(TokenType.FUN)) return this.functionStatement("function");
             if (this.match(TokenType.VAR)) return this.varDeclaration();
-            if(this.match(TokenType.CONST)) return this.varDeclaration(true);
+            if (this.match(TokenType.CONST)) return this.varDeclaration(true);
             return this.statement();
         } catch (e) {
             if (e instanceof ParseError) {
@@ -141,7 +141,7 @@ export class Parser {
 
         let initializer: Expr | undefined;
         // If declared with 'const', we MUST have an initializer
-        if(isConst) {
+        if (isConst) {
             this.consume(TokenType.EQUAL, "Missing initializer in const variable declaration.");
             initializer = this.expression();
         }
@@ -256,20 +256,26 @@ export class Parser {
     }
 
     functionStatement(kind: string): FunctionStmt {
-        const name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
-        const {parameters, body, isGetter } = this.function(kind);
+        let name: Token;
+        if(kind === "method" && this.peek().type === TokenType.MAGIC_IDENTIFIER) {
+            name = this.consume(TokenType.MAGIC_IDENTIFIER, `Expect ${kind} name.`);
+        }
+        else {
+            name = this.consume(TokenType.IDENTIFIER, `Expect ${kind} name.`);
+        }
+        const { parameters, body, isGetter } = this.function(kind);
         return new FunctionStmt(name, parameters, body, isGetter ?? false);
     }
-    
+
     function(kind: string): FunctionDefinition {
-        if(kind === "method" && this.match(TokenType.LEFT_BRACE)) {
+        if (kind === "method" && this.match(TokenType.LEFT_BRACE)) {
             return { parameters: [], body: this.block(), isGetter: true };
         }
 
-        this.consume(TokenType.LEFT_PAREN, 
+        this.consume(TokenType.LEFT_PAREN,
             kind === "function expression" ?
-            `Expect '(' after fun keyword.` :
-            `Expect '(' after ${kind} name.`
+                `Expect '(' after fun keyword.` :
+                `Expect '(' after ${kind} name.`
         );
 
         const parameters: Token[] = [];
@@ -295,7 +301,7 @@ export class Parser {
         const name = this.consume(TokenType.IDENTIFIER, "Expect class name.");
 
         let superclass: VariableExpr | undefined;
-        if(this.match(TokenType.LESS)) {
+        if (this.match(TokenType.LESS)) {
             this.consume(TokenType.IDENTIFIER, "Expect superclass name.");
             superclass = new VariableExpr(this.previous());
         }
@@ -428,17 +434,17 @@ export class Parser {
             return new LiteralExpr(this.previous().literal);
         }
 
-        if(this.match(TokenType.SUPER)) {
+        if (this.match(TokenType.SUPER)) {
             const keyword = this.previous();
             this.consume(TokenType.DOT, "Expect '.' after 'super'.");
             const method = this.consume(TokenType.IDENTIFIER, "Expect superclass method name.");
             return new SuperExpr(keyword, method);
         }
 
-        if(this.match(TokenType.THIS)) {
+        if (this.match(TokenType.THIS)) {
             return new ThisExpr(this.previous());
         }
-        
+
         if (this.match(TokenType.IDENTIFIER)) {
             return new VariableExpr(this.previous());
         }
@@ -449,8 +455,8 @@ export class Parser {
             return new GroupingExpr(expr);
         }
 
-        if(this.match(TokenType.FUN)) {
-            const {parameters, body} = this.function("function expression");
+        if (this.match(TokenType.FUN)) {
+            const { parameters, body } = this.function("function expression");
             return new FunctionExpr(parameters, body);
         }
 
@@ -482,7 +488,7 @@ export class Parser {
             } else if (this.match(TokenType.DOT)) {
                 const name = this.consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
                 expr = new GetExpr(expr, name);
-            } else if(this.match(TokenType.LEFT_BRACKET)) {
+            } else if (this.match(TokenType.LEFT_BRACKET)) {
                 const index = this.expression();
                 this.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index expression.");
                 expr = new IndexGetExpr(this.previous(), expr, index);

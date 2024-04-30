@@ -120,10 +120,12 @@ export class Scanner {
             parseFloat(this.source.substring(this.start, this.cur)));
     }
 
-    identifier(): void {
+    identifier(isMagic: boolean = false): void {
+        // Magic identifiers start with '$', skip it to maintain same core logic in rest
+        if(isMagic) this.advance();
         while (this.isAlphaNumeric(this.peek())) this.advance();
         const text = this.source.substring(this.start, this.cur);
-        let tokenType = TokenType.IDENTIFIER;
+        let tokenType = isMagic ? TokenType.MAGIC_IDENTIFIER : TokenType.IDENTIFIER;
 
         if (Scanner.keywords.has(text)) {
             tokenType = Scanner.keywords.get(text)!;
@@ -182,7 +184,9 @@ export class Scanner {
                     this.number();
                 } else if (this.isAlpha(c)) {
                     this.identifier();
-                } else {
+                } else if (c === '$') {
+                    this.identifier(true);
+                }else {
                     this.lox.error(this.line, "Unexpected character.");
                 }
                 break;

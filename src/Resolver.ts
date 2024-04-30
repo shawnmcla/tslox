@@ -1,4 +1,4 @@
-import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, SuperExpr, ThisExpr, Token, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExprVisitor, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, PrintStmt, ReturnStmt, SetExpr, Stmt, StmtVisitor, SuperExpr, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
 import { Interpreter } from "./Interpreter";
 import { Lox } from "./Lox";
 
@@ -6,7 +6,8 @@ enum FunctionType {
     NONE,
     FUNCTION,
     INITIALIZER,
-    METHOD
+    METHOD,
+    MAGIC
 }
 
 enum ClassType {
@@ -20,6 +21,16 @@ class VarInfo {
 }
 
 type Scope = Map<string, VarInfo>;
+
+interface MagicInfo {
+    name: string,
+    arity: number
+}
+
+const magics: Record<string, MagicInfo> = {
+    "$get": { name: "$get", arity: 1 },
+    "$set": { name: "$set", arity: 2 }
+};
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     private readonly scopes: Scope[] = [];
@@ -64,6 +75,10 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         const enclosingFunction = this.currentFunction;
         this.currentFunction = type;
         this.beginScope();
+        if(type === FunctionType.MAGIC) {
+            // Class methods are always FunctionStmt instances
+            this.validateMagic(func as FunctionStmt);
+        }
         for (const param of func.params) {
             this.declare(param);
             this.define(param);
@@ -81,7 +96,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         const scope = this.scopes.pop()!;
         for (const name of scope.keys()) {
             const info = scope.get(name)!;
-            if(!info.used) { 
+            if (!info.used) {
                 this.lox.warn(0, `Variable ${name} unused`)
             }
         }
@@ -101,6 +116,17 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         const varInfo = this.peekScope().get(name.lexeme);
         if (varInfo) varInfo.defined = true;
         else this.peekScope().set(name.lexeme, new VarInfo(true));
+    }
+
+    validateMagic(func: FunctionStmt) {
+        const definition = magics[func.name.lexeme];
+        if(definition) {
+            if(definition.arity !== func.params.length) {
+                this.lox.error(func.name, `Magic method '${func.name.lexeme}' should take exactly ${definition.arity} arguments.`);
+            }
+        } else {
+            this.lox.error(func.name, `Invalid magic method '${func.name.lexeme}'`);
+        }
     }
 
     visitExpressionStmt(stmt: ExpressionStmt): void {
@@ -175,7 +201,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.declare(stmt.name);
         this.define(stmt.name);
 
-        if(stmt.superclass) {
+        if (stmt.superclass) {
             if (stmt.name.lexeme === stmt.superclass.name.lexeme) {
                 this.lox.error(stmt.superclass.name,
                     "A class can't inherit from itself.");
@@ -191,12 +217,20 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.peekScope().set("this", new VarInfo(true, true));
 
         for (const method of stmt.methods) {
-            const declaration = method.name.lexeme === "init" ? FunctionType.INITIALIZER : FunctionType.METHOD;
+            let declaration: FunctionType = FunctionType.METHOD;
+
+            if (method.name.lexeme === "init") {
+                declaration = FunctionType.INITIALIZER
+            }
+            else if (method.name.type === TokenType.MAGIC_IDENTIFIER) {
+                declaration = FunctionType.MAGIC;
+            }
+            
             this.resolveFunction(method, declaration);
         }
 
         this.endScope();
-        if(stmt.superclass) {
+        if (stmt.superclass) {
             this.endScope();
         }
         this.currentClass = enclosingClass;
@@ -251,7 +285,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     visitIndexGetExpr(get: IndexGetExpr): void {
         this.resolveExpression(get.object);
-        this.resolveExpression(get.index);    
+        this.resolveExpression(get.index);
     }
 
     visitSetExpr(set: SetExpr): void {
@@ -264,7 +298,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.resolveExpression(set.index);
         this.resolveExpression(set.object);
     }
-    
+
     visitThisExpr(thisValue: ThisExpr): void {
         if (this.currentClass === ClassType.NONE) {
             this.lox.error(thisValue.keyword, "Can't use 'this' outside of a class.");
@@ -276,11 +310,11 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         if (this.currentClass === ClassType.NONE) {
             this.lox.error(superExpr.keyword,
                 "Can't use 'super' outside of a class.");
-          } else if (this.currentClass !== ClassType.SUBCLASS) {
+        } else if (this.currentClass !== ClassType.SUBCLASS) {
             this.lox.error(superExpr.keyword,
                 "Can't use 'super' in a class with no superclass.");
-          }
-        this.resolveLocal(superExpr, superExpr.keyword);    
+        }
+        this.resolveLocal(superExpr, superExpr.keyword);
     }
 
     visitFunctionExpr(func: FunctionExpr): void {

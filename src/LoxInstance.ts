@@ -1,7 +1,9 @@
 import { Token } from "./Ast";
 import { RuntimeError } from "./Errors";
 import { Lobj } from "./Interpreter";
+import { LoxCallable } from "./LoxCallable";
 import { LoxClass } from "./LoxClass";
+import { LoxFunctionLike } from "./LoxFunction";
 
 
 export class LoxInstance {
@@ -24,6 +26,11 @@ export class LoxInstance {
         if (method) return method.boundTo(this);
 
         throw new RuntimeError(name, `Undefined property '${name.lexeme}'.`)
+    }
+
+    getMethod(name: string): LoxFunctionLike | undefined {
+        const method = this.klass.findMethod(name);
+        if (method) return method.boundTo(this);
     }
 
     set(name: Token, value: Lobj) {

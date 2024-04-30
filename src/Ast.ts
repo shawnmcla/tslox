@@ -11,7 +11,7 @@ export enum TokenType {
     LESS, LESS_EQUAL,
 
     // Literals.
-    IDENTIFIER, STRING, NUMBER,
+    IDENTIFIER, MAGIC_IDENTIFIER, STRING, NUMBER,
 
     // Keywords.
     AND, CLASS, CONST, ELSE, FALSE, FUN, FOR, IF, NIL, OR,

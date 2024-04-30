@@ -5,7 +5,7 @@ import { Lox } from "./Lox";
 import { LoxArray } from "./LoxArray";
 import { LoxCallable } from "./LoxCallable";
 import { LoxClass } from "./LoxClass";
-import { LoxFunction, LoxNativeFunction } from "./LoxFunction";
+import { LoxFunction, LoxFunctionLike, LoxNativeFunction } from "./LoxFunction";
 import { LoxInstance } from "./LoxInstance";
 import { globalFunctions } from "./NativeFunctions";
 
@@ -18,7 +18,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     private readonly locals: Map<Expr, number> = new Map();
 
     constructor(private lox: Lox, private replMode: boolean = false) {
-        for(const functionname in globalFunctions) {
+        for (const functionname in globalFunctions) {
             this.globals.define(functionname, new LoxNativeFunction(globalFunctions[functionname]));
         }
     }
@@ -215,19 +215,25 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
     visitIndexGetExpr(get: IndexGetExpr) {
         const object = this.evaluate(get.object);
-        if(!(object instanceof LoxArray)) {
-            throw new RuntimeError(get.bracket, "Can only index array.");
-        }
-
         const index = this.evaluate(get.index);
-        if(typeof index !== "number") {
-            throw new RuntimeError(get.bracket, "Index must be a number.");
+
+        if (object instanceof LoxArray) {
+            if (typeof index !== "number") {
+                throw new RuntimeError(get.bracket, "Index must be a number.");
+            }
+
+            if (index < 0) throw new RuntimeError(get.bracket, "Index must be greater or equal to 0.");
+            if (index >= object.innerArray.length) throw new RuntimeError(get.bracket, "Array index out of range.");
+
+            return object.innerArray[index];
+        } else if(object instanceof LoxInstance) {
+            const getter = object.getMethod("$get");
+            if(getter) {
+                return getter.boundTo(object).call(this, [index]);
+            }
         }
 
-        if(index < 0) throw new RuntimeError(get.bracket, "Index must be greater or equal to 0.");
-        if(index >= object.innerArray.length) throw new RuntimeError(get.bracket, "Array index out of range.");
-
-        return object.innerArray[index];
+        throw new RuntimeError(get.bracket, "Value not indexable.");
     }
 
     visitSetExpr(set: SetExpr): Lobj {
@@ -243,21 +249,29 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
     visitIndexSetExpr(set: IndexSetExpr) {
         const object = this.evaluate(set.object);
-        if(!(object instanceof LoxArray)) {
-            throw new RuntimeError(set.bracket, "Can only index array.");
-        }
-
         const index = this.evaluate(set.index);
-        if(typeof index !== "number") {
-            throw new RuntimeError(set.bracket, "Index must be a number.");
+        if (object instanceof LoxArray) {
+            if (typeof index !== "number") {
+                throw new RuntimeError(set.bracket, "Index must be a number.");
+            }
+
+            if (index < 0) throw new RuntimeError(set.bracket, "Index must be greater or equal to 0.");
+            if (index >= object.innerArray.length) throw new RuntimeError(set.bracket, "Array index out of range.");
+
+            const value = this.evaluate(set.value);
+            object.innerArray[index] = value;
+            return value;
+        } else if (object instanceof LoxInstance) {
+            // Check if set-index magic is present
+            const setter = object.getMethod("$set");
+            if (setter) {
+                const value = this.evaluate(set.value);
+                setter.boundTo(object).call(this, [index, value]);
+                return value;
+            }
         }
 
-        if(index < 0) throw new RuntimeError(set.bracket, "Index must be greater or equal to 0.");
-        if(index >= object.innerArray.length) throw new RuntimeError(set.bracket, "Array index out of range.");
-
-        const value = this.evaluate(set.value);
-        object.innerArray[index] = value;
-        return value;
+        throw new RuntimeError(set.bracket, "Value not indexable.");
     }
 
     visitThisExpr(thisValue: ThisExpr) {
@@ -267,12 +281,12 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
     visitSuperExpr(superExpr: SuperExpr) {
         const distance = this.locals.get(superExpr)!;
         const superclass = this.environment.getAt(distance, "super") as LoxClass;
-        const obj = this.environment.getAt(distance - 1, "this") as LoxInstance;  
+        const obj = this.environment.getAt(distance - 1, "this") as LoxInstance;
         const method = superclass.findMethod(superExpr.method.lexeme);
-        if(!method) {
+        if (!method) {
             throw new RuntimeError(superExpr.method, `Undefined property '${superExpr.method.lexeme}'.`);
         }
-        return method.boundTo(obj); 
+        return method.boundTo(obj);
     }
 
     visitExpressionStmt(stmt: ExpressionStmt): void {
@@ -339,20 +353,20 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
     visitClassStmt(stmt: ClassStmt): void {
         let superclass: Lobj | undefined;
-        if(stmt.superclass) {
+        if (stmt.superclass) {
             superclass = this.evaluate(stmt.superclass);
-            if(!(superclass instanceof LoxClass)){
+            if (!(superclass instanceof LoxClass)) {
                 throw new RuntimeError(stmt.superclass.name, "Superclass must be a class.");
             }
         }
 
         this.environment.define(stmt.name.lexeme, null);
 
-        if(stmt.superclass) {
+        if (stmt.superclass) {
             this.environment = new Environment(this.environment);
             this.environment.define("super", superclass);
         }
-        
+
         const methods: Map<string, LoxFunction> = new Map();
 
         for (const method of stmt.methods) {
@@ -362,7 +376,7 @@ export class Interpreter implements ExprVisitor<Lobj>, StmtVisitor<void> {
 
         const klass = new LoxClass(stmt.name.lexeme, superclass, methods);
 
-        if(superclass) {
+        if (superclass) {
             this.environment = this.environment.enclosing!;
         }
 

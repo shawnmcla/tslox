@@ -83,12 +83,31 @@ list[2] = ":^)";
 for(var i = 0; i < 3; i = i + 1) { print list[i]; }
 `;
 
+const magics1 = `
+class MyArr {
+    $get(idx) {
+        return idx + 10;
+    }
+    $set(idx, val) {
+        print "SET '" + string(idx) + "' TO '" + string(val) + "'";
+    }
+}
+
+var a1 = MyArr();
+
+print a1[0];
+print a1[10];
+
+print (a1[100] = "foo");
+`;
+
 export const samples: Record<string, string> = {
     helloWorld,
     class1,
     fib,
     scope,
     functionExpressions,
-    array1
+    array1,
+    magics1
 }
 
