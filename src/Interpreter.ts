@@ -1,4 +1,6 @@
-import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, Token, TokenType, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt, ClassStmt, GetExpr, SetExpr, ThisExpr, FunctionExpr, SuperExpr, IndexGetExpr, IndexSetExpr } from "./Ast";
+import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr, ExprVisitor, StmtVisitor, ExpressionStmt, PrintStmt, Stmt, VariableExpr, VarStmt, AssignmentExpr, BlockStmt, IfStmt, LogicalExpr, WhileStmt, CallExpr, FunctionStmt, ReturnStmt, BreakStmt, ContinueStmt, ClassStmt, GetExpr, SetExpr, ThisExpr, FunctionExpr, SuperExpr, IndexGetExpr, IndexSetExpr } from "./Ast";
+import { TokenType } from "./Token";
+import { Token } from "./Token";
 import { Environment } from "./Environment";
 import { Break, Continue, Return, RuntimeError } from "./Errors";
 import { Lox } from "./Lox";

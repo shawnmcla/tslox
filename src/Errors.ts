@@ -1,4 +1,4 @@
-import { Token } from "./Ast";
+import { Token } from "./Token";
 import { Lobj } from "./Interpreter";
 
 export class LoxError extends Error { }

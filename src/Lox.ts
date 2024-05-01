@@ -1,4 +1,5 @@
-import { Token, TokenType } from "./Ast";
+import { TokenType } from "./Token";
+import { Token } from "./Token";
 import { RuntimeError } from "./Errors";
 import { Interpreter } from "./Interpreter";
 import { LoxIO } from "./LoxIO";

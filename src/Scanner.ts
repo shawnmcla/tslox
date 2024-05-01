@@ -1,4 +1,5 @@
-import { Token, TokenType } from "./Ast";
+import { TokenType } from "./Token";
+import { Token } from "./Token";
 import { Lox } from "./Lox";
 
 const c0 = '0'.charCodeAt(0);

@@ -1,4 +1,6 @@
-import { Location, AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, NoLoc, PrintStmt, ReturnStmt, SetExpr, Stmt, SuperExpr, ThisExpr, Token, TokenType, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { Location, AssignmentExpr, BinaryExpr, BlockStmt, BreakStmt, CallExpr, ClassStmt, ContinueStmt, Expr, ExpressionStmt, FunctionExpr, FunctionStmt, GetExpr, GroupingExpr, IfStmt, IndexGetExpr, IndexSetExpr, LiteralExpr, LogicalExpr, NoLoc, PrintStmt, ReturnStmt, SetExpr, Stmt, SuperExpr, ThisExpr, UnaryExpr, VarStmt, VariableExpr, WhileStmt } from "./Ast";
+import { TokenType } from "./Token";
+import { Token } from "./Token";
 import { ParseError } from "./Errors";
 import { Lox } from "./Lox";
 

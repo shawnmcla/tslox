@@ -1,4 +1,4 @@
-import { Token } from "./Ast";
+import { Token } from "./Token";
 import { RuntimeError } from "./Errors";
 import { $_LOX_CONST } from "./Internals";
 import { Lobj } from "./Interpreter";

@@ -1,4 +1,4 @@
-import { Token } from "./Ast";
+import { Token } from "./Token";
 import { RuntimeError } from "./Errors";
 import { Lobj } from "./Interpreter";
 import { LoxCallable } from "./LoxCallable";
