@@ -8,8 +8,12 @@ export class DocComment {
     constructor(public text: string, public loc: Location) { }
 }
 
+export class Meta {
+    constructor(public name: string, public data: any) { }
+}
+
 export class Token {
-    constructor(public type: TokenType, public lexeme: string, public literal: any, public loc: Location, public docComment?: DocComment) { }
+    constructor(public type: TokenType, public lexeme: string, public literal: any, public loc: Location, public docComment?: DocComment, public metas: Meta[] = []) { }
 
     get typeName() { return TokenType[this.type]; }
 
@@ -63,6 +67,7 @@ const cZ = 'Z'.charCodeAt(0);
 
 export enum ScanErrorType {
     UnterminatedString,
+    InvalidEscapeSequence,
     UnexpectedCharacter,
     InvalidNumericLiteral
 }
@@ -77,7 +82,9 @@ export class Scanner {
     private cur: number = 0;
     private start: number = 0;
     private line: number = 0;
+    private isAtStartOfLine: boolean = true;
     private docComment?: DocComment;
+    private metas: Meta[] = [];
 
     get hasError(): boolean { return this.scanErrors.length > 0 }
     get lastError(): ScanError { return this.scanErrors[this.scanErrors.length - 1] }
@@ -143,7 +150,7 @@ export class Scanner {
     }
 
     previous(): string {
-        if(this.cur === 0) return '\0';
+        if (this.cur === 0) return '\0';
         return this.source[this.cur - 1];
     }
 
@@ -171,27 +178,78 @@ export class Scanner {
 
     addToken(type: TokenType, literal: any = null): void {
         const text = this.source.substring(this.start, this.cur);
-        this.tokens.push(new Token(type, text, literal, this.getLocation(), this.docComment));
-        // We consumed it if it was existing
+        this.tokens.push(new Token(type, text, literal, this.getLocation(), this.docComment, this.metas));
+        // We consumed these if they existed
         this.docComment = undefined;
+        this.metas = [];
+        // This is now necessarily false
+        this.isAtStartOfLine = false;
     }
 
     string(): void {
+        let error = false;
+        const chars = [];
         while (this.peek() != '"' && !this.isAtEnd) {
-            if (this.peek() == '\n') this.line++;
-            this.advance();
+            if (this.peek() === '\\') { // Escape char
+                this.advance();
+                switch (this.peek()) {
+                    case 'b':
+                        chars.push('\b');
+                        break;
+                    case 'f':
+                        chars.push('\f');
+                        break;
+                    case 'n':
+                        chars.push('\n');
+                        break;
+                    case 'r':
+                        chars.push('\r');
+                        break;
+                    case 't':
+                        chars.push('\t');
+                        break;
+                    case 'v':
+                        chars.push('\v');
+                        break;
+                    case '0':
+                        chars.push('\0');
+                        break;
+                    case "'":
+                        chars.push("'");
+                        break;
+                    case '"':
+                        chars.push('"');
+                        break;
+                    case '\\':
+                        chars.push('\\');
+                        break;
+                    default:
+                        this.error(ScanErrorType.InvalidEscapeSequence, `Invalid escape sequence:\\${this.peek()}`);
+                        error = true;
+                        break;
+                }
+                this.advance();
+            } else {
+                if (this.peek() == '\n') this.line++;
+                chars.push(this.advance());
+            }
+        }
+
+        // TODO: This assumes that we want to keep scanning after an error..
+        if(error) {
+            // Fast forward to closing "
+            while(!this.isAtEnd && this.peek() !== '"') this.advance();
         }
 
         if (this.isAtEnd) {
             this.error(ScanErrorType.UnterminatedString, "Unterminated string.");
             return;
-        }
+        } 
 
         // The closing ".
         this.advance();
 
-        // Trim the surrounding quotes.
-        const value = this.source.substring(this.start + 1, this.cur - 1);
+        const value = chars.join('');
         this.addToken(TokenType.STRING_LITERAL, value);
     }
 
@@ -247,6 +305,7 @@ export class Scanner {
             parseInt(this.source.substring(this.start + 2, this.cur), 8));
     }
 
+    // TODO: Allow _ as separator, following same logic as JS
     number(): void {
         // Check for special literals
         // 0o | 0O = Octal
@@ -286,13 +345,11 @@ export class Scanner {
     }
 
     comment(singleLine: boolean) {
-        console.debug("Comment - single line?", singleLine)
         if (singleLine) {
             while (this.peek() != '\n' && !this.isAtEnd) this.advance();
         } else {
             // If the block comment begins with '/**' then we consider it a doc comment
             let isDocComment = this.match('*');
-            console.debug("Is doc comment? ", isDocComment);
             const startLine = this.line;
 
             while (!this.isAtEnd && this.peek() !== '*' && this.peekNext() !== '/') {
@@ -307,6 +364,12 @@ export class Scanner {
                 this.docComment = new DocComment(commentText, { file: this.fileName, line: startLine, offset: this.start });
             }
         }
+    }
+
+    meta() {
+        while(!this.isAtEnd && this.peek() !== '\n') this.advance();
+        const metaName = this.source.substring(this.start + 1, this.cur);
+        this.metas.push(new Meta(metaName, null));
     }
 
     scanToken(): void {
@@ -354,11 +417,14 @@ export class Scanner {
                 break;
             case '\n':
                 this.line++;
+                this.isAtStartOfLine = true;
                 break;
             case '"': this.string(); break;
-
             default:
-                if (this.isDigit(c)) {
+                if(c === '#' && this.isAtStartOfLine) {
+                    this.meta();
+                }
+                else if (this.isDigit(c)) {
                     this.number();
                 } else if (this.isAlpha(c)) {
                     this.identifier();
@@ -376,12 +442,13 @@ export class Scanner {
         }
 
         this.tokens.push(new Token(TokenType.EOF, "", null, this.getLocation()));
+        
         return this.tokens;
     }
 
     error(type: ScanErrorType, message: string, location?: Location): void {
         if (!location) location = this.getLocation();
         this.scanErrors.push(new ScanError(type, location, message));
-        //console.error(`${type} at line ${location.line}: ${message}`);
+        console.error(`${type} at line ${location.line}: ${message}`);
     }
 } 

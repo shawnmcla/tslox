@@ -67,7 +67,9 @@ describe("scanner", () => {
             [`"a
 b
 c"`, "a\nb\nc"],
-            [`   "a  b  c"  `, "a  b  c"]
+            [`   "a  b  c"  `, "a  b  c"],
+            [`"a\\nb"`, "a\nb"],
+            [`"\\ttabbed"`, "\ttabbed"],
         ];
 
         for (const test of tests) {
@@ -87,7 +89,7 @@ c"`, "a\nb\nc"],
     test("scanTokens (String literals with errors)", () => {
         const tests: [string, ScanErrorType][] = [
             [`   "unterminated string   `, ScanErrorType.UnterminatedString],
-            [`let x = #unexpected character`, ScanErrorType.UnexpectedCharacter]
+            [`"foo\\xafafa"`, ScanErrorType.InvalidEscapeSequence],
         ];
 
         for (const test of tests) {
@@ -96,7 +98,6 @@ c"`, "a\nb\nc"],
 
             const scanner = new Scanner(source);
             scanner.scanTokens();
-
             expect(scanner.lastError.type).toEqual(expected);
         }
     });
@@ -152,4 +153,42 @@ c"`, "a\nb\nc"],
             expect(scanner.lastError.type).toEqual(expected);
         }
     });
+
+    test("scanTokens (location tests)", () => {
+        const tests: [string, [string, number, number][]][] = [
+            ["let x = 0;", [
+                ["LET", 0, 0],
+                ["IDENTIFIER", 0, 4],
+                ["EQUAL", 0, 6],
+                ["NUMBER", 0, 8],
+                ["SEMICOLON", 0, 9],
+                ["EOF", 0, 9]
+            ]],
+            ["//foo comment\nfn bar(): int { \nreturn 100; }", [
+                ["FN", 1, 14],
+                ["IDENTIFIER", 1, 17],
+                ["LEFT_PAREN", 1, 20],
+                ["RIGHT_PAREN", 1, 21],
+                ["COLON", 1, 22],
+                ["INT", 1, 24],
+                ["LEFT_BRACE", 1, 28],
+                ["RETURN", 2, 31],
+                ["NUMBER", 2, 38],
+                ["SEMICOLON", 2, 41],
+                ["RIGHT_BRACE", 2, 43],
+                ["EOF", 2, 43],
+            ]]
+        ];
+
+        for (const test of tests) {
+            const source = test[0];
+            const expected = test[1];
+
+            const scanner = new Scanner(source);
+            const tokens = scanner.scanTokens();
+
+            expect(tokens.map(t => [t.typeName, t.loc.line, t.loc.offset])).toEqual(expected);
+        }
+    });
+
 });
