@@ -50,9 +50,10 @@ export enum TokenType {
 }
 
 export namespace TokenType {
-    const _identifierTypes = [TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT, TokenType.STRING, TokenType.BOOL];
+    export const LiteralTypes = [TokenType.NUMBER, TokenType.STRING_LITERAL, TokenType.NIL, TokenType.TRUE, TokenType.FALSE ];
+    export const IdentifierTypes = [TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT, TokenType.STRING, TokenType.BOOL];
     export function isValidTypeIdentifier(type: TokenType) {
-        return _identifierTypes.includes(type);
+        return IdentifierTypes.includes(type);
     }
 }
 
