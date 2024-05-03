@@ -1,13 +1,12 @@
-import { ParseTreeNode, FunctionDeclaration, VariableDeclaration, Statement, Expression, VariableExpression, Block, LiteralExpression, Param, ReturnStatement, AddExpression, SubExpression, BinaryExpression } from "./ParseTree";
+import { ParseTreeNode, FunctionDeclarationStatement, VariableDeclarationStatement, Statement, Expression, VariableExpression, BlockStatement, LiteralExpression, Param, ReturnStatement, BinaryExpression } from "./ParseTree";
 import { Token, TokenType, Location } from "./Scanner";
 
 function parseNodeToString(node: ParseTreeNode) {
-    if(node instanceof FunctionDeclaration) {
-        console.debug(node.body.statements.map(s => JSON.stringify(s, null, '  ')).join('\n'));
+    if(node instanceof FunctionDeclarationStatement) {
         return `fn ${node.name.lexeme}(${node.parameters.map(p => `${p.name.lexeme}: ${p.type.lexeme}`).join(', ')})${(node.returnType ? `: ${node.returnType.lexeme}` : "")} { ...body }`;
     }
 
-    if(node instanceof VariableDeclaration) {
+    if(node instanceof VariableDeclarationStatement) {
         const keyword = node.isConst ? "const" : "let";
         const name = node.name.lexeme;
         const type = node.type ? `: ${node.type.lexeme}` : "";
@@ -163,7 +162,6 @@ export class Parser {
 
         let type: Token | undefined;
         if (this.match(TokenType.COLON)) {
-            console.debug(" .. has type");
             if(this.match(...TokenType.IdentifierTypes)) {
                 type = this.previous();
             } else {
@@ -178,8 +176,7 @@ export class Parser {
         }
 
         this.consume(TokenType.SEMICOLON, "after variable declaration.");
-        console.debug(parseNodeToString(new VariableDeclaration(token, name, isConst, type, initializer)));
-        return new VariableDeclaration(token, name, isConst, type, initializer);
+        return new VariableDeclarationStatement(token, name, isConst, type, initializer);
     }
 
     statement(): Statement {
@@ -195,7 +192,7 @@ export class Parser {
         return this.expressionStatement();
     }
 
-    block(): Block {
+    block(): BlockStatement {
         const token = this.previous();
         const statements: Statement[] = [];
 
@@ -204,7 +201,7 @@ export class Parser {
         }
 
         this.consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
-        return new Block(token, statements);
+        return new BlockStatement(token, statements);
     }
 
     ifStatement(): Statement {
@@ -311,18 +308,13 @@ export class Parser {
         return body;
     }
 
-    functionDeclaration(kind: string): FunctionDeclaration {
-        console.debug("Parsing function declaration");
-        
+    functionDeclaration(kind: string): FunctionDeclarationStatement {        
         const token = this.previous();
-        console.debug("  fn token", token.lexeme);
         
         let name = this.consume(TokenType.IDENTIFIER, "in function declaration");
-        console.debug("  name token", name.lexeme);
         
         this.consume(TokenType.LEFT_PAREN, "after function name");
         const params: Param[] = [];
-        console.debug("  params: ", params);
         while(this.match(TokenType.IDENTIFIER)) {
             const paramName = this.previous();
             this.consume(TokenType.COLON, "after parameter name");
@@ -339,7 +331,6 @@ export class Parser {
         
         let returnType: Token | undefined;
         if (this.match(TokenType.COLON)) {
-            console.debug(" .. has return type");
             if(this.match(...TokenType.IdentifierTypes)) {
                 returnType = this.previous();
             } else {
@@ -349,8 +340,7 @@ export class Parser {
         
         this.consume(TokenType.LEFT_BRACE, "before function body");
         const body = this.block();
-        console.log(parseNodeToString(new FunctionDeclaration(token, name, params, returnType, body)));
-        return new FunctionDeclaration(token, name, params, returnType, body)
+        return new FunctionDeclarationStatement(token, name, params, returnType, body)
     }
 
     classDeclaration(): Statement {

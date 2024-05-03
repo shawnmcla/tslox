@@ -1,3 +1,5 @@
+import { AstCompiler } from "./Compiler";
+import { ParseTreePrinter } from "./ParseTree";
 import { Parser } from "./Parser";
 import { Scanner, TokenType } from "./Scanner";
 
@@ -13,20 +15,33 @@ import { Scanner, TokenType } from "./Scanner";
 // }
 // `;
 
-//const src = `fn addSub10(x: int, y:int): int { return x + y - 10; }`;
+const src = `fn addSub10(x: int, y:int): int { return x + y - 10; }`;
 //const src = `fn add(x: int, y:int): int { return x + y; }`;
-const src = `let foo: int = "abcdef";`
+//const src = `let foo: int = "abcdef";`
 
-console.log("Static lang init");
+console.debug("SOURCE:\n", src);
+console.debug("");
 const s = new Scanner(src);
 
 const tokens = s.scanTokens();
 
-console.log(tokens.map(t => `${t.typeName}`))// (${t.docComment?.text}) [${t.metas.map(m => m.name).join(";")}]` ));
+console.debug("TOKENS:\n",tokens.map(t => `${t.typeName}`));// (${t.docComment?.text}) [${t.metas.map(m => m.name).join(";")}]` ));
+console.debug("");
+
 
 const p = new Parser(tokens);
 try{
-    p.parse();
+    const result = p.parse();
+    const printer = new ParseTreePrinter(result[0]);
+
+    console.debug("PARSE TREE:\n", printer.print());
+console.debug("");
+    
+
+    const compiler = new AstCompiler(result[0]);
+    const program = compiler.compile();
+    
+    //console.debug("PROGRAM:\n", program);
 }catch(e) {
     console.error(e);
 }
