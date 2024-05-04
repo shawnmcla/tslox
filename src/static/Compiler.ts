@@ -1,5 +1,5 @@
 import { AstNode, Block, Expression, FunctionDeclaration, Return, Scope, ScopeType, TypeRef } from "./Ast";
-import { BinaryExpression, BlockStatement, ExpressionStatement, FunctionDeclarationStatement, LiteralExpression, ParseTreeNode, ParseTreeNodeVisitor, ReturnStatement, VariableDeclarationStatement, VariableExpression } from "./ParseTree";
+import { BinaryExpression, BlockStatement, DeclarationStatement, ExpressionStatement, FunctionDeclarationStatement, LiteralExpression, ParseTreeNode, ParseTreeNodeVisitor, ReturnStatement, VariableDeclarationStatement, VariableExpression } from "./ParseTree";
 
 export class Program {
     constructor(public root: AstNode) { }
@@ -7,6 +7,7 @@ export class Program {
 
 export class AstCompiler implements ParseTreeNodeVisitor<AstNode> {
     private scopes: Scope[] = [];
+    private decls: any[] = [];
 
     constructor(public parseTreeRoot: ParseTreeNode) { }
 
@@ -19,12 +20,22 @@ export class AstCompiler implements ParseTreeNodeVisitor<AstNode> {
         this.scopes.push(scope);
     }
 
+    collectDeclarations(block: BlockStatement) {
+        for(const stmt of block.statements){
+            if(stmt instanceof DeclarationStatement) {
+                this.decls.push(`${stmt.name}->${stmt.declType}`);
+            }
+        }
+    }
+
     leaveScope() {
         this.scopes.pop();
     }
 
     compile(): Program {
-        return new Program(this.parseTreeRoot.accept(this));
+        const program = new Program(this.parseTreeRoot.accept(this));
+        console.log("DECLS", this.decls);
+        return program;
     }
 
     visitBinaryExpression(expr: BinaryExpression): Binary {

@@ -35,12 +35,12 @@ export class Parser {
 
     constructor(private tokens: Token[]) { }
 
-    parse(): Statement[] {
+    parse(): BlockStatement {
         const statements: Statement[] = [];
         while (!this.isAtEnd) {
             statements.push(this.declaration()!);
         }
-        return statements;
+        return new BlockStatement(statements[0].token, statements);
     }
 
     get isAtEnd(): boolean {

@@ -56,17 +56,30 @@ export class BlockStatement extends Statement {
     }
     constructor(token: Token, public statements: Statement[] = []) { super(token); }
 }
-export class FunctionDeclarationStatement extends Statement {
+
+export enum DeclarationType {
+    Variable,
+    Function,
+}
+
+export abstract class DeclarationStatement extends Statement { 
+    constructor(token: Token, public name: Token) { super(token); }
+    abstract get declType(): DeclarationType;
+}
+
+export class FunctionDeclarationStatement extends DeclarationStatement {
     accept<T>(visitor: ParseTreeNodeVisitor<T>): T {
         return visitor.visitFunctionDeclaration(this);
     }
-    constructor(token: Token, public name: Token, public parameters: Param[], public returnType: Token | undefined, public body: BlockStatement) { super(token); }
+    constructor(token: Token, name: Token, public parameters: Param[], public returnType: Token | undefined, public body: BlockStatement) { super(token, name); }
+    get declType(): DeclarationType { return DeclarationType.Function; }
 }
-export class VariableDeclarationStatement extends Statement {
+export class VariableDeclarationStatement extends DeclarationStatement {
     accept<T>(visitor: ParseTreeNodeVisitor<T>): T {
         return visitor.visitVariableDeclaration(this);
     }
-    constructor(token: Token, public name: Token, public isConst: boolean = false, public type?: Token, public initializer?: Expression) { super(token); }
+    constructor(token: Token, name: Token, public isConst: boolean = false, public type?: Token, public initializer?: Expression) { super(token, name); }
+    get declType(): DeclarationType { return DeclarationType.Variable; }
 }
 export class ExpressionStatement extends Statement {
     accept<T>(visitor: ParseTreeNodeVisitor<T>): T {
@@ -150,8 +163,9 @@ export class ParseTreePrinter implements ParseTreeNodeVisitor<void> {
     }
 
     visitLiteralExpression(expr: LiteralExpression): void {
-        this.writeLine(`Literal(${expr.token.literal})`);
+        this.writeLine(`Literal(${JSON.stringify(expr.token.literal)})`);
     }
+
     visitBlock(stmt: BlockStatement): void {
         this.writeLine("Block(");
         this.indent();

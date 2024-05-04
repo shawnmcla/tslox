@@ -22,7 +22,7 @@ const src = `fn add2(x: int, y: int): int {
     return x  + y;
 }
 
-let result = add2(10, 3);
+let result: int = add2(10, 3);
 print("5 + 3 = ");
 println(result);`
 
@@ -39,13 +39,13 @@ console.debug("");
 const p = new Parser(tokens);
 try{
     const result = p.parse();
-    const printer = new ParseTreePrinter(result);
+    const printer = new ParseTreePrinter([result]);
 
     console.debug("PARSE TREE:\n", printer.print());
 console.debug("");
     
 
-    const compiler = new AstCompiler(result[0]);
+    const compiler = new AstCompiler(result);
     const program = compiler.compile();
     
     //console.debug("PROGRAM:\n", program);
