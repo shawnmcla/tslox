@@ -15,9 +15,16 @@ import { Scanner, TokenType } from "./Scanner";
 // }
 // `;
 
-const src = `fn addSub10(x: int, y:int): int { return x + y - 10; }`;
+//const src = `fn addSub10(x: int, y:int): int { return x + y - 10; }`;
 //const src = `fn add(x: int, y:int): int { return x + y; }`;
 //const src = `let foo: int = "abcdef";`
+const src = `fn add2(x: int, y: int): int {
+    return x  + y;
+}
+
+let result = add2(10, 3);
+print("5 + 3 = ");
+println(result);`
 
 console.debug("SOURCE:\n", src);
 console.debug("");
@@ -32,7 +39,7 @@ console.debug("");
 const p = new Parser(tokens);
 try{
     const result = p.parse();
-    const printer = new ParseTreePrinter(result[0]);
+    const printer = new ParseTreePrinter(result);
 
     console.debug("PARSE TREE:\n", printer.print());
 console.debug("");

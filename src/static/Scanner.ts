@@ -44,7 +44,7 @@ export enum TokenType {
     INT, FLOAT, BOOL, STRING,
     // -- Others
     AND, CLASS, CONST, ELSE, FALSE, FN, FOR, FOREACH, IF, NIL, OR, IN,
-    PRINT, BREAK, CONTINUE, RETURN, SUPER, THIS, TRUE, LET, WHILE,
+    BREAK, CONTINUE, RETURN, SUPER, THIS, TRUE, LET, WHILE,
 
     EOF, INTERNAL
 }
@@ -109,7 +109,6 @@ export class Scanner {
             ["if", TokenType.IF],
             ["nil", TokenType.NIL],
             ["or", TokenType.OR],
-            ["print", TokenType.PRINT],
             ["break", TokenType.BREAK],
             ["continue", TokenType.CONTINUE],
             ["return", TokenType.RETURN],

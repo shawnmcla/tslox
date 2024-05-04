@@ -4,7 +4,9 @@ export interface ParseTreeNodeVisitor<T> {
     visitBinaryExpression(expr: BinaryExpression): T;
     visitVariableExpression(expr: VariableExpression): T;
     visitLiteralExpression(expr: LiteralExpression): T;
-
+    visitCallExpression(expr: CallExpression): T;
+    visitGroupingExpression(expr: GroupingExpression): T;
+    
     visitBlock(stmt: BlockStatement): T;
     visitFunctionDeclaration(stmt: FunctionDeclarationStatement): T;
     visitVariableDeclaration(stmt: VariableDeclarationStatement): T;
@@ -34,7 +36,18 @@ export class LiteralExpression extends Expression {
         return visitor.visitLiteralExpression(this);
     }
 }
-
+export class CallExpression extends Expression {
+    constructor(token: Token, public callee: Expression, public args: Expression[]) { super(token); }
+    accept<T>(visitor: ParseTreeNodeVisitor<T>): T {
+        return visitor.visitCallExpression(this);
+    }
+}
+export class GroupingExpression extends Expression {
+    constructor(token: Token, public expression: Expression) { super(token); }
+    accept<T>(visitor: ParseTreeNodeVisitor<T>): T {
+        return visitor.visitGroupingExpression(this);
+    }
+}
 export abstract class Statement extends ParseTreeNode { constructor(token: Token) { super(token); } }
 
 export class BlockStatement extends Statement {
@@ -73,7 +86,31 @@ export class ParseTreePrinter implements ParseTreeNodeVisitor<void> {
     private indentAmount = 0;
     private newLine = true;
 
-    constructor(private root: ParseTreeNode) { }
+    constructor(private nodes: ParseTreeNode[]) { }
+
+    visitCallExpression(expr: CallExpression): void {
+        this.writeLine("CallExpression(");
+        this.indent();
+        this.write("callee = ");
+        expr.callee.accept(this);
+        this.writeLine("args = (");
+        this.indent();
+        for(const arg of expr.args) {
+            arg.accept(this);
+        }
+        this.dedent();
+        this.writeLine(")");
+        this.dedent();
+        this.writeLine(")");
+    }
+
+    visitGroupingExpression(expr: GroupingExpression): void {
+        this.writeLine("GroupingExpression(");
+        this.indent();
+        expr.expression.accept(this);
+        this.dedent();
+        this.writeLine(")");
+    }
     visitBinaryExpression(expr: BinaryExpression): void {
         this.writeLine("BinaryExpression(");
         this.indent();
@@ -139,11 +176,26 @@ export class ParseTreePrinter implements ParseTreeNodeVisitor<void> {
     }
 
     visitVariableDeclaration(stmt: VariableDeclarationStatement): void {
-        this.out += `VariableDeclaration<name=${stmt.name.lexeme}, type=${stmt.type?.lexeme ?? "none"}, const?=${(stmt.isConst ? "yes" : "no")}, initializer=`;
-        if (stmt.initializer) stmt.initializer.accept(this);
-        else this.out += "none"
-        this.out += ">";
+        this.writeLine("VariableDeclaration(");
+        this.indent();
+        this.writeLine(`name = ${stmt.name.lexeme}`);
+        this.writeLine(`type = ${stmt.type?.lexeme ?? "none"}`); 
+        this.writeLine(`const? = ${(stmt.isConst ? "yes" : "no")}`);
+        this.write(`initializer = `);
+
+        if (stmt.initializer) {
+            this.writeLine();
+            this.indent();
+            stmt.initializer.accept(this);
+            this.dedent();
+        } else {
+            this.writeLine("none");
+        }
+
+        this.dedent();
+        this.writeLine(")");
     }
+
     visitExpressionStatement(stmt: ExpressionStatement): void {
         stmt.expression.accept(this);
     }
@@ -159,7 +211,9 @@ export class ParseTreePrinter implements ParseTreeNodeVisitor<void> {
     }
 
     print(): string {
-        this.root.accept(this);
+        for(const node of this.nodes) {
+            node.accept(this);
+        }
         return this.out;
     }
 }

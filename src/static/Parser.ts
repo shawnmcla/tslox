@@ -1,4 +1,4 @@
-import { ParseTreeNode, FunctionDeclarationStatement, VariableDeclarationStatement, Statement, Expression, VariableExpression, BlockStatement, LiteralExpression, Param, ReturnStatement, BinaryExpression } from "./ParseTree";
+import { ParseTreeNode, FunctionDeclarationStatement, VariableDeclarationStatement, Statement, Expression, VariableExpression, BlockStatement, LiteralExpression, Param, ReturnStatement, BinaryExpression, CallExpression, GroupingExpression, ExpressionStatement } from "./ParseTree";
 import { Token, TokenType, Location } from "./Scanner";
 
 function parseNodeToString(node: ParseTreeNode) {
@@ -386,7 +386,7 @@ export class Parser {
     expressionStatement(): Statement {
         const expr = this.expression();
         this.consume(TokenType.SEMICOLON, "Expect ';' after expression.");
-        return new ExpressionStmt(expr);
+        return new ExpressionStatement(expr.token, expr);
     }
 
     or(): Expression {
@@ -492,9 +492,10 @@ export class Parser {
         }
 
         if (this.match(TokenType.LEFT_PAREN)) {
+            const paren = this.previous();
             const expr = this.expression();
             this.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
-            return new GroupingExpr(expr);
+            return new GroupingExpression(paren, expr);
         }
 
         // if (this.match(TokenType.FUN)) {
@@ -518,7 +519,7 @@ export class Parser {
 
         const paren = this.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
 
-        return new CallExpr(callee, paren, args);
+        return new CallExpression(paren, callee, args);
     }
 
     call(): Expression {
