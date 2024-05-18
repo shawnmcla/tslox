@@ -1,4 +1,26 @@
-import { Logger } from "./Logger";
+export enum Op {
+    push,
+    pop,
+    
+}
+
+console.log(Op);
+const src = `
+@main:
+    push 10
+    push 20
+    call addDouble
+    print
+    halt
+
+@addDouble(i32 x, i32 y) i32: # takes two i32 params, returns an i32 value
+    push x
+    push y
+    i32Add
+    push 2
+    i32Mul
+    return
+`;
 
 export interface Location {
     file: string;
@@ -6,16 +28,8 @@ export interface Location {
     offset: number;
 }
 
-export class DocComment {
-    constructor(public text: string, public loc: Location) { }
-}
-
-export class Meta {
-    constructor(public name: string, public data: any) { }
-}
-
 export class Token {
-    constructor(public type: TokenType, public lexeme: string, public literal: any, public loc: Location, public docComment?: DocComment, public metas: Meta[] = []) { }
+    constructor(public type: TokenType, public lexeme: string, public literal: any, public loc: Location) { }
 
     get typeName() { return TokenType[this.type]; }
 
@@ -43,21 +57,21 @@ export enum TokenType {
 
     // Keywords.
     // -- Type names
-    INT, FLOAT, BOOL, STRING,
+    // INT, FLOAT, BOOL, STRING,
     // -- Others
-    AND, CLASS, CONST, ELSE, FALSE, FN, FOR, FOREACH, IF, NIL, OR, IN,
-    BREAK, CONTINUE, RETURN, SUPER, THIS, TRUE, LET, WHILE,
+    // AND, CLASS, CONST, ELSE, FALSE, FN, FOR, FOREACH, IF, NIL, OR, IN,
+    // BREAK, CONTINUE, RETURN, SUPER, THIS, TRUE, LET, WHILE,
 
     EOF, INTERNAL
 }
 
-export namespace TokenType {
-    export const LiteralTypes = [TokenType.NUMBER, TokenType.STRING_LITERAL, TokenType.NIL, TokenType.TRUE, TokenType.FALSE ];
-    export const IdentifierTypes = [TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT, TokenType.STRING, TokenType.BOOL];
-    export function isValidTypeIdentifier(type: TokenType) {
-        return IdentifierTypes.includes(type);
-    }
-}
+// export namespace TokenType {
+//     export const LiteralTypes = [TokenType.NUMBER, TokenType.STRING_LITERAL, TokenType.NIL, TokenType.TRUE, TokenType.FALSE];
+//     export const IdentifierTypes = [TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT, TokenType.STRING, TokenType.BOOL];
+//     export function isValidTypeIdentifier(type: TokenType) {
+//         return IdentifierTypes.includes(type);
+//     }
+// }
 
 const c0 = '0'.charCodeAt(0);
 const c7 = '7'.charCodeAt(0);
@@ -85,49 +99,41 @@ export class Scanner {
     private cur: number = 0;
     private start: number = 0;
     private line: number = 0;
-    private isAtStartOfLine: boolean = true;
-    private docComment?: DocComment;
-    private metas: Meta[] = [];
-
-    private logger?: Logger;
 
     get hasError(): boolean { return this.scanErrors.length > 0 }
     get lastError(): ScanError { return this.scanErrors[this.scanErrors.length - 1] }
 
     private static keywords: Map<string, TokenType> = new Map(
         [
-            ["int", TokenType.INT],
-            ["float", TokenType.FLOAT],
-            ["bool", TokenType.BOOL],
-            ["string", TokenType.STRING],
-
-            ["and", TokenType.AND],
-            ["class", TokenType.CLASS],
-            ["const", TokenType.CONST],
-            ["else", TokenType.ELSE],
-            ["false", TokenType.FALSE],
-            ["for", TokenType.FOR],
-            ["foreach", TokenType.FOREACH],
-            ["in", TokenType.IN],
-            ["fn", TokenType.FN],
-            ["if", TokenType.IF],
-            ["nil", TokenType.NIL],
-            ["or", TokenType.OR],
-            ["break", TokenType.BREAK],
-            ["continue", TokenType.CONTINUE],
-            ["return", TokenType.RETURN],
-            ["super", TokenType.SUPER],
-            ["this", TokenType.THIS],
-            ["true", TokenType.TRUE],
-            ["let", TokenType.LET],
-            ["while", TokenType.WHILE],
+            // ["int", TokenType.INT],
+            // ["float", TokenType.FLOAT],
+            // ["bool", TokenType.BOOL],
+            // ["string", TokenType.STRING],
+            // ["and", TokenType.AND],
+            // ["class", TokenType.CLASS],
+            // ["const", TokenType.CONST],
+            // ["else", TokenType.ELSE],
+            // ["false", TokenType.FALSE],
+            // ["for", TokenType.FOR],
+            // ["foreach", TokenType.FOREACH],
+            // ["in", TokenType.IN],
+            // ["fn", TokenType.FN],
+            // ["if", TokenType.IF],
+            // ["nil", TokenType.NIL],
+            // ["or", TokenType.OR],
+            // ["break", TokenType.BREAK],
+            // ["continue", TokenType.CONTINUE],
+            // ["return", TokenType.RETURN],
+            // ["super", TokenType.SUPER],
+            // ["this", TokenType.THIS],
+            // ["true", TokenType.TRUE],
+            // ["let", TokenType.LET],
+            // ["while", TokenType.WHILE],
         ]
     );
 
     constructor(public source: string, public fileName: string = "") { }
 
-    useConsoleLogger(){ this.logger = console; }
-    
     get isAtEnd(): boolean {
         return this.cur >= this.source.length;
     }
@@ -184,12 +190,7 @@ export class Scanner {
 
     addToken(type: TokenType, literal: any = null): void {
         const text = this.source.substring(this.start, this.cur);
-        this.tokens.push(new Token(type, text, literal, this.getLocation(), this.docComment, this.metas));
-        // We consumed these if they existed
-        this.docComment = undefined;
-        this.metas = [];
-        // This is now necessarily false
-        this.isAtStartOfLine = false;
+        this.tokens.push(new Token(type, text, literal, this.getLocation()));
     }
 
     string(): void {
@@ -242,15 +243,15 @@ export class Scanner {
         }
 
         // TODO: This assumes that we want to keep scanning after an error..
-        if(error) {
+        if (error) {
             // Fast forward to closing "
-            while(!this.isAtEnd && this.peek() !== '"') this.advance();
+            while (!this.isAtEnd && this.peek() !== '"') this.advance();
         }
 
         if (this.isAtEnd) {
             this.error(ScanErrorType.UnterminatedString, "Unterminated string.");
             return;
-        } 
+        }
 
         // The closing ".
         this.advance();
@@ -354,10 +355,6 @@ export class Scanner {
         if (singleLine) {
             while (this.peek() != '\n' && !this.isAtEnd) this.advance();
         } else {
-            // If the block comment begins with '/**' then we consider it a doc comment
-            let isDocComment = this.match('*');
-            const startLine = this.line;
-
             while (!this.isAtEnd && this.peek() !== '*' && this.peekNext() !== '/') {
                 if (this.advance() === '\n') {
                     this.line++;
@@ -365,17 +362,7 @@ export class Scanner {
             }
             this.advance();
             this.advance();
-            if (isDocComment) {
-                const commentText = this.source.substring(this.start + 3, this.cur - 2);
-                this.docComment = new DocComment(commentText, { file: this.fileName, line: startLine, offset: this.start });
-            }
         }
-    }
-
-    meta() {
-        while(!this.isAtEnd && this.peek() !== '\n') this.advance();
-        const metaName = this.source.substring(this.start + 1, this.cur);
-        this.metas.push(new Meta(metaName, null));
     }
 
     scanToken(): void {
@@ -423,14 +410,10 @@ export class Scanner {
                 break;
             case '\n':
                 this.line++;
-                this.isAtStartOfLine = true;
                 break;
             case '"': this.string(); break;
             default:
-                if(c === '#' && this.isAtStartOfLine) {
-                    this.meta();
-                }
-                else if (this.isDigit(c)) {
+                if (this.isDigit(c)) {
                     this.number();
                 } else if (this.isAlpha(c)) {
                     this.identifier();
@@ -448,13 +431,31 @@ export class Scanner {
         }
 
         this.tokens.push(new Token(TokenType.EOF, "", null, this.getLocation()));
-        
+
         return this.tokens;
     }
 
     error(type: ScanErrorType, message: string, location?: Location): void {
         if (!location) location = this.getLocation();
         this.scanErrors.push(new ScanError(type, location, message));
-        this.logger?.error(`${type} at line ${location.line}: ${message}`);
+        console.error(`${type} at line ${location.line}: ${message}`);
     }
-} 
+}
+/**Assembled:
+00   i32Const 10
+01   i32Const 20
+02   call 5
+03   print
+04   halt
+
+05   i32GetArg 8
+06   i32GetArg 4
+07   i32Add
+08   i32Conts 2
+09   i32Mul
+10   return*/
+
+const s = new Scanner(src);
+
+
+console.log(s.scanTokens().map(t => t.typeName));

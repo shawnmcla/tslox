@@ -25,7 +25,7 @@ describe("scanner", () => {
     test("scanTokens (General)", () => {
         const tests: [string, string[]][] = [
             // Literally all of the tokens :)
-            [": [ ] ( ) { } , . - + ; / * ! != = == > >= < <= => myIdent \"a string literal\" 12345 int float bool string and class const else false fn for foreach if nil or in print break continue return super this true let while",
+            [": [ ] ( ) { } , . - + ; / * ! != = == > >= < <= => myIdent \"a string literal\" 12345 int float bool string and class const else false fn for foreach if nil or in break continue return super this true let while",
                 ["COLON", "LEFT_BRACKET", "RIGHT_BRACKET",
                     "LEFT_PAREN", "RIGHT_PAREN", "LEFT_BRACE", "RIGHT_BRACE",
                     "COMMA", "DOT", "MINUS", "PLUS", "SEMICOLON", "SLASH", "STAR",
@@ -36,7 +36,7 @@ describe("scanner", () => {
                     "ARROW", "IDENTIFIER", "STRING_LITERAL", "NUMBER",
                     "INT", "FLOAT", "BOOL", "STRING",
                     "AND", "CLASS", "CONST", "ELSE", "FALSE", "FN", "FOR", "FOREACH", "IF", "NIL", "OR", "IN",
-                    "PRINT", "BREAK", "CONTINUE", "RETURN", "SUPER", "THIS", "TRUE", "LET", "WHILE", "EOF"]],
+                    "BREAK", "CONTINUE", "RETURN", "SUPER", "THIS", "TRUE", "LET", "WHILE", "EOF"]],
             // Realistic tests, ensuring whitespace does not matter
             ["let x: int = 5;", ["LET", "IDENTIFIER", "COLON", "INT", "EQUAL", "NUMBER", "SEMICOLON", "EOF"]],
             ["let     x:int=3   ;", ["LET", "IDENTIFIER", "COLON", "INT", "EQUAL", "NUMBER", "SEMICOLON", "EOF"]],
